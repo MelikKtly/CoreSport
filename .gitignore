@@ -1,0 +1,25 @@
+# .gitignore (CoreSportFinal/ dizininde)
+
+# Gizli Bilgiler ve Çevre Değişkenleri
+# Asla GitHub'a gitmemeli!
+.env
+.env.local
+.env.*.local
+
+# Bağımlılıklar (Çok büyük ve gereksizler)
+node_modules/
+**/node_modules/
+
+# Build (Derleme) Çıktıları
+dist/
+.next/
+build/
+
+# Loglar
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# macOS / Windows Sistem Dosyaları
+.DS_Store
+Thumbs.db
