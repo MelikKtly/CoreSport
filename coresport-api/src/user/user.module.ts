@@ -1,16 +1,19 @@
 // coresport-api/src/user/user.module.ts
 
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common'; // forwardRef'i buraya ekledik
 import { UserService } from './user.service';
 import { UserController } from './user.controller';
-import { TypeOrmModule } from '@nestjs/typeorm'; // BUNU EKLEYİN
-import { User } from './entities/user.entity'; // BUNU EKLEYİN
-import { AuthModule } from 'src/auth/auth.module'; // BUNU EKLEYİN
+import { TypeOrmModule } from '@nestjs/typeorm'; // Virgül hatasını düzelttik
+import { User } from './entities/user.entity';
+import { AuthModule } from '../auth/auth.module'; // Yolu düzelttik (src yerine ..)
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User]),AuthModule], // BU SATIRI EKLEYİN
+  imports: [
+    TypeOrmModule.forFeature([User]), 
+    forwardRef(() => AuthModule), 
+  ],
   controllers: [UserController],
   providers: [UserService],
-  exports: [UserService], // BU SATIRI DA EKLEYİN (Auth için gerekli olacak)
+  exports: [UserService], 
 })
 export class UserModule {}
