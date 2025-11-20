@@ -56,6 +56,12 @@ export class UserService {
     return this.userRepository.findOne({ where: { id } }); // <-- DÜZELTİLDİ: Gerçek veritabanı sorgusu
   }
 
+  // Email ile kullanıcı bulma fonksiyonu
+  // DÜZELTME: 'undefined' yerine 'null' yazdık
+  async findOneByEmail(email: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { email } });
+  }
+
   // update(id: number, updateUserDto: UpdateUserDto) { ... }
 
   // remove(id: number) { ... }
