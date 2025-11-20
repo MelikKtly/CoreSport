@@ -1,142 +1,137 @@
-// coresport-app/src/app/register/page.tsx
+"use client";
 
-"use client"; // Bu bir istemci bileşenidir (interaktif)
-
-import { useState } from 'react'; // React'in "hafıza" (state) özelliğini import et
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import AnimatedBackground from '../components/AnimatedBackground';
 
 export default function RegisterPage() {
-  // 1. Form verilerini saklamak için "state" (hafıza) oluştur
-  const [name, setName] = useState('');
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
-  
-  // Hata ve başarı mesajları için state'ler
+  const [name, setName] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  // 2. Form gönderildiğinde çalışacak fonksiyon
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); // Sayfanın yeniden yüklenmesini engelle
-    setError(''); // Eski hataları temizle
-    setSuccess(''); // Eski başarı mesajlarını temizle
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
 
-    // 3. Backend'e (API) isteği gönder
     try {
-      const res = await fetch('http://localhost:3001/user', { // API adresimiz
+      // Backend'e istek at (Port 3001/user)
+      const res = await fetch('http://localhost:3001/user', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: name,
-          email: email,
-          password: password,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        // Backend 400, 409 (Conflict) gibi bir hata döndürdüyse
-        throw new Error(data.message || 'Bir hata oluştu');
+        throw new Error(data.message || 'Kayıt başarısız oldu');
       }
-
-      // Başarılı!
-      setSuccess('Kayıt başarılı! Giriş sayfasına yönlendiriliyorsunuz...');
-      console.log('Kayıt başarılı:', data);
-      // İleride buraya: router.push('/login') ekleyeceğiz
+      
+      console.log('Kayıt Başarılı:', data);
+      // Başarılı kayıt sonrası giriş sayfasına yönlendir
+      router.push('/login'); 
 
     } catch (err: any) {
-      // Bir hata yakalandı (örn: e-posta zaten kullanılıyor)
       setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // 4. JSX (HTML) kısmını, state'lere bağla
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white">
-      <div className="w-full max-w-md rounded-lg bg-gray-800 p-8 shadow-2xl">
-        <h2 className="mb-6 text-center text-3xl font-bold text-white">
-          CoreSport'a Katıl
-        </h2>
+    <div className="flex min-h-screen w-full items-center justify-center relative p-4 overflow-hidden">
+      
+      {/* Hareketli Arka Plan */}
+      <AnimatedBackground />
+
+      {/* Glassmorphism Kart */}
+      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-lg shadow-2xl animate-fade-in-up my-4 relative z-10">
         
-        {/* onSubmit event'ini forma ekledik */}
-        <form className="space-y-6" onSubmit={handleSubmit}>
-          {/* İsim Alanı */}
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-300">
-              İsim
+        <div className="text-center mb-8">
+          <h2 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-400">
+            Aramıza Katıl
+          </h2>
+          <p className="text-gray-400 mt-2 text-sm">
+            Sporcu yolculuğun burada başlıyor.
+          </p>
+        </div>
+        
+        <form className="space-y-5" onSubmit={handleSubmit}>
+          
+          {/* İsim */}
+          <div className="group">
+            <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-1 transition-colors group-focus-within:text-emerald-400">
+              Ad Soyad
             </label>
             <input
               id="name"
-              name="name"
               type="text"
-              required
-              className="mt-1 block w-full rounded-md border-gray-700 bg-gray-700 p-3 text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500"
+              className="block w-full rounded-xl border border-white/10 bg-white/5 p-3 text-white placeholder-gray-500 outline-none transition-all focus:border-emerald-500/50 focus:bg-white/10 focus:ring-2 focus:ring-emerald-500/20"
               placeholder="Adınız Soyadınız"
-              value={name} // State'e bağla
-              onChange={(e) => setName(e.target.value)} // State'i güncelle
+              value={name}
+              onChange={(e) => setName(e.target.value)}
             />
           </div>
 
-          {/* E-posta Alanı */}
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-300">
-              E-posta
+          {/* E-posta */}
+          <div className="group">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1 transition-colors group-focus-within:text-emerald-400">
+              E-posta <span className="text-red-400">*</span>
             </label>
             <input
               id="email"
-              name="email"
               type="email"
-              autoComplete="email"
               required
-              className="mt-1 block w-full rounded-md border-gray-700 bg-gray-700 p-3 text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500"
-              placeholder="test@coresport.com"
-              value={email} // State'e bağla
-              onChange={(e) => setEmail(e.target.value)} // State'i güncelle
+              className="block w-full rounded-xl border border-white/10 bg-white/5 p-3 text-white placeholder-gray-500 outline-none transition-all focus:border-emerald-500/50 focus:bg-white/10 focus:ring-2 focus:ring-emerald-500/20"
+              placeholder="ornek@coresport.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 
-          {/* Şifre Alanı */}
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-300">
-              Şifre
+          {/* Şifre */}
+          <div className="group">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1 transition-colors group-focus-within:text-emerald-400">
+              Şifre <span className="text-red-400">*</span>
             </label>
             <input
               id="password"
-              name="password"
               type="password"
-              autoComplete="current-password"
               required
-              minLength={6}
-              className="mt-1 block w-full rounded-md border-gray-700 bg-gray-700 p-3 text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500"
+              className="block w-full rounded-xl border border-white/10 bg-white/5 p-3 text-white placeholder-gray-500 outline-none transition-all focus:border-emerald-500/50 focus:bg-white/10 focus:ring-2 focus:ring-emerald-500/20"
               placeholder="En az 6 karakter"
-              value={password} // State'e bağla
-              onChange={(e) => setPassword(e.target.value)} // State'i güncelle
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
           </div>
 
-          {/* Hata veya Başarı Mesajları */}
+          {/* Hata Mesajı */}
           {error && (
-            <div className="rounded-md bg-red-800 p-3 text-center text-sm text-white">
+            <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-center text-sm text-red-200 animate-pulse">
               {error}
             </div>
           )}
-          {success && (
-            <div className="rounded-md bg-green-800 p-3 text-center text-sm text-white">
-              {success}
-            </div>
-          )}
 
-          {/* Kayıt Ol Butonu */}
-          <div>
-            <button
-              type="submit"
-              className="flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-3 text-base font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              Kayıt Ol
-            </button>
+          {/* Kayıt Butonu */}
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-blue-600 px-4 py-3.5 text-base font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02] hover:shadow-emerald-500/40 active:scale-[0.98] disabled:opacity-70 disabled:hover:scale-100"
+          >
+             {isLoading ? "Kaydediliyor..." : "Hesap Oluştur"}
+          </button>
+
+          {/* Alt Linkler */}
+          <div className="text-center text-sm text-gray-400 mt-4">
+            Zaten bir hesabın var mı?{' '}
+            <Link href="/login" className="font-semibold text-emerald-400 hover:text-emerald-300 transition-colors hover:underline">
+              Giriş Yap
+            </Link>
           </div>
         </form>
       </div>

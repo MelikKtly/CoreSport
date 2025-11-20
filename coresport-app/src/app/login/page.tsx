@@ -1,24 +1,24 @@
-// coresport-app/src/app/login/page.tsx
-
 "use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation'; // Sayfa yönlendirmesi için
-import Link from 'next/link'; // Link vermek için
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import AnimatedBackground from '../components/AnimatedBackground';
 
 export default function LoginPage() {
   const router = useRouter();
-  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
     try {
-      // 1. Backend'e Giriş İsteği Gönder
+      // Backend'e istek at (Port 3001)
       const res = await fetch('http://localhost:3001/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -31,54 +31,66 @@ export default function LoginPage() {
         throw new Error(data.message || 'Giriş başarısız');
       }
 
-      // 2. Başarılı! Token'ı sakla (İleride bunu cookie ile yapacağız, şimdilik localStorage yeterli)
+      // Başarılı ise Token'ı kaydet
       localStorage.setItem('token', data.access_token);
+      console.log('Giriş Başarılı');
       
-      console.log('Giriş Başarılı, Token:', data.access_token);
-
-      // 3. Ana sayfaya (veya Dashboard'a) yönlendir
+      // Ana sayfaya yönlendir
       router.push('/'); 
       
     } catch (err: any) {
       setError('Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white">
-      <div className="w-full max-w-md rounded-lg bg-gray-800 p-8 shadow-2xl">
-        <h2 className="mb-6 text-center text-3xl font-bold text-white">
-          Tekrar Hoş Geldin
-        </h2>
+    <div className="flex min-h-screen w-full items-center justify-center relative p-4 overflow-hidden">
+      
+      {/* Hareketli Arka Plan */}
+      <AnimatedBackground />
+      
+      {/* Glassmorphism Kart (z-10 ile öne çıkardık) */}
+      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-lg shadow-2xl animate-fade-in-up relative z-10">
+        
+        <div className="text-center mb-8">
+          <h2 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
+            Tekrar Hoş Geldin
+          </h2>
+          <p className="text-gray-400 mt-2 text-sm">
+            Kaldığın yerden devam etmeye hazır mısın?
+          </p>
+        </div>
         
         <form className="space-y-6" onSubmit={handleSubmit}>
           
           {/* E-posta */}
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-300">
+          <div className="group">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1 transition-colors group-focus-within:text-blue-400">
               E-posta
             </label>
             <input
               id="email"
               type="email"
               required
-              className="mt-1 block w-full rounded-md border-gray-700 bg-gray-700 p-3 text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500"
-              placeholder="test@coresport.com"
+              className="block w-full rounded-xl border border-white/10 bg-white/5 p-3 text-white placeholder-gray-500 outline-none transition-all focus:border-blue-500/50 focus:bg-white/10 focus:ring-2 focus:ring-blue-500/20"
+              placeholder="ornek@coresport.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 
           {/* Şifre */}
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+          <div className="group">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1 transition-colors group-focus-within:text-blue-400">
               Şifre
             </label>
             <input
               id="password"
               type="password"
               required
-              className="mt-1 block w-full rounded-md border-gray-700 bg-gray-700 p-3 text-white shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500"
+              className="block w-full rounded-xl border border-white/10 bg-white/5 p-3 text-white placeholder-gray-500 outline-none transition-all focus:border-blue-500/50 focus:bg-white/10 focus:ring-2 focus:ring-blue-500/20"
               placeholder="••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -87,7 +99,7 @@ export default function LoginPage() {
 
           {/* Hata Mesajı */}
           {error && (
-            <div className="rounded-md bg-red-800 p-3 text-center text-sm text-white">
+            <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-center text-sm text-red-200 animate-pulse">
               {error}
             </div>
           )}
@@ -95,16 +107,19 @@ export default function LoginPage() {
           {/* Giriş Butonu */}
           <button
             type="submit"
-            className="flex w-full justify-center rounded-md border border-transparent bg-green-600 px-4 py-3 text-base font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            disabled={isLoading}
+            className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-emerald-600 px-4 py-3.5 text-base font-bold text-white shadow-lg shadow-blue-500/20 transition-all hover:scale-[1.02] hover:shadow-blue-500/40 active:scale-[0.98] disabled:opacity-70 disabled:hover:scale-100"
           >
-            Giriş Yap
+            {isLoading ? "Giriş Yapılıyor..." : "Giriş Yap"}
           </button>
 
-          {/* Kayıt Ol Linki */}
-          <div className="text-center text-sm text-gray-400">
-            Hesabın yok mu?{' '}
-            <Link href="/register" className="font-semibold text-blue-400 hover:text-blue-300">
-              Hemen Kayıt Ol
+          {/* Alt Linkler */}
+          <div className="text-center text-sm text-gray-400 mt-4 flex justify-between items-center">
+             <Link href="#" className="hover:text-blue-400 transition-colors">
+                 Şifremi Unuttum
+             </Link>
+            <Link href="/register" className="font-semibold text-blue-400 hover:text-blue-300 transition-colors hover:underline">
+              Hesap Oluştur
             </Link>
           </div>
         </form>
