@@ -6,6 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { AuthService } from '../auth/auth.service';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UserService {
@@ -62,7 +63,26 @@ export class UserService {
     return this.userRepository.findOne({ where: { email } });
   }
 
-  // update(id: number, updateUserDto: UpdateUserDto) { ... }
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    // 1. Önce kullanıcıyı bul
+    // (Bunu yapmazsak olmayan birini güncellemeye çalışabiliriz)
+    // preload: TypeORM'in harika bir özelliği. Varsa üzerine yazar, yoksa oluşturur (biz id verdiğimiz için bulup üzerine yazacak)
+    const user = await this.userRepository.preload({
+      id: id,
+      ...updateUserDto,
+    });
+
+    if (!user) {
+      throw new HttpException(`Kullanıcı #${id} bulunamadı`, HttpStatus.NOT_FOUND);
+    }
+
+    // 2. Güncellemeyi kaydet
+    const updatedUser = await this.userRepository.save(user);
+
+    // 3. Şifreyi (hash) sonuçtan çıkarıp geri döndür
+    const { passwordHash, ...result } = updatedUser;
+    return result;
+  }
 
   // remove(id: number) { ... }
 }

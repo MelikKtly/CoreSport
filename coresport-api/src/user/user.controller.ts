@@ -1,5 +1,3 @@
-// coresport-api/src/user/user.controller.ts
-
 import { 
   Controller, 
   Post, 
@@ -7,27 +5,27 @@ import {
   Get, 
   Param, 
   ParseUUIDPipe, 
-  HttpException,  // BUNU EKLEYİN
-  HttpStatus      // BUNU EKLEYİN
-} from '@nestjs/common';import { UserService } from './user.service';
+  HttpException,
+  HttpStatus,
+  Patch // Patch'i ekledik
+} from '@nestjs/common';
+import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto'; // UpdateUserDto'yu ekledik
 
-@Controller('user') // Sizin kullandığınız gibi 'user' (tekil) olarak bıraktım
+@Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  // POST http://localhost:3001/user
+  // POST (Kayıt Ol)
   @Post()
   async create(@Body() createUserDto: CreateUserDto) {
-    // Artık 'This action...' döndürmeyecek,
-    // doğrudan userService.create'i çağıracak ve sonucu döndürecek.
     return this.userService.create(createUserDto);
   }
 
-  // GET http://localhost:3001/user/bir-uuid
+  // GET (Kullanıcı Bul)
   @Get(':id')
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
-    // Bu fonksiyonu da düzeltmiş olalım, ileride lazım olacak
     const user = await this.userService.findOne(id);
     if (!user) {
       throw new HttpException('Kullanıcı bulunamadı', HttpStatus.NOT_FOUND);
@@ -35,6 +33,13 @@ export class UserController {
     const { passwordHash, ...result } = user;
     return result;
   }
-  
-  // Diğer (findAll, update, remove) adreslerini şimdilik sildik.
+
+  // PATCH (Güncelle - Yeni Eklediğimiz Kısım)
+  @Patch(':id')
+  async update(
+    @Param('id', ParseUUIDPipe) id: string, 
+    @Body() updateUserDto: UpdateUserDto
+  ) {
+    return this.userService.update(id, updateUserDto);
+  }
 }
