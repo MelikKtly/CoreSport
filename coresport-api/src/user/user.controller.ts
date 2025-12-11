@@ -7,11 +7,12 @@ import {
   ParseUUIDPipe, 
   HttpException,
   HttpStatus,
-  Patch // Patch'i ekledik
+  Patch,
+  Delete // Delete'i ekledik
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto'; // UpdateUserDto'yu ekledik
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Controller('user')
 export class UserController {
@@ -23,23 +24,37 @@ export class UserController {
     return this.userService.create(createUserDto);
   }
 
-  // GET (Kullanıcı Bul)
+  // GET (Tüm Kullanıcıları Listele - Yeni Ekledik)
+  @Get()
+  async findAll() {
+    return this.userService.findAll();
+  }
+
+  // GET (Tekil Kullanıcı Bul)
   @Get(':id')
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
     const user = await this.userService.findOne(id);
     if (!user) {
       throw new HttpException('Kullanıcı bulunamadı', HttpStatus.NOT_FOUND);
     }
+    // Güvenlik: Şifre hash'ini veritabanından gelse bile kullanıcıya gösterme
     const { passwordHash, ...result } = user;
     return result;
   }
 
-  // PATCH (Güncelle - Yeni Eklediğimiz Kısım)
+  // PATCH (Güncelle)
   @Patch(':id')
   async update(
     @Param('id', ParseUUIDPipe) id: string, 
     @Body() updateUserDto: UpdateUserDto
   ) {
     return this.userService.update(id, updateUserDto);
+  }
+
+  // DELETE (Kullanıcı Sil - Yeni Ekledik)
+  @Delete(':id')
+  async remove(@Param('id', ParseUUIDPipe) id: string) {
+    await this.userService.remove(id);
+    return { message: 'Kullanıcı başarıyla silindi' };
   }
 }

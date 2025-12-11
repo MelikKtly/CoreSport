@@ -1,72 +1,72 @@
-// coresport-api/src/user/user.service.ts
-
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
+import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
-import { AuthService } from '../auth/auth.service';
+import { User } from './entities/user.entity';
+import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { AuthService } from '../auth/auth.service';
 
 @Injectable()
 export class UserService {
-  // Veritabanı (User Tablosu) ve Güvenlik (AuthService) servislerini "enjekte" ediyoruz
+  // Veritabanı ve Auth servislerini enjekte ediyoruz
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    
     private readonly authService: AuthService,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
-    // 1. Gelen DTO'dan email, name ve password'ü al
-    const { email, name, password } = createUserDto;
+    // Şifreyi ayır, geri kalan tüm bilgileri (email, name, sportBranch, weight, height) userData içinde tut
+    const { password, ...userData } = createUserDto;
 
-    // 2. Bu e-posta adresi veritabanında zaten var mı?
-    const existingUser = await this.userRepository.findOne({ where: { email } });
-
+    // 1. E-posta kontrolü
+    const existingUser = await this.userRepository.findOne({ where: { email: userData.email } });
     if (existingUser) {
-      // Eğer varsa, 409 (Conflict) hatası fırlat
       throw new HttpException('Bu e-posta adresi zaten kullanılıyor', HttpStatus.CONFLICT);
     }
 
-    // 3. Şifreyi hash'le (AuthService'imizi kullanıyoruz)
+    // 2. Şifreyi hash'le (AuthService üzerinden)
     const passwordHash = await this.authService.hashPassword(password);
 
-    // 4. Yeni kullanıcıyı oluştur
+    // 3. Yeni kullanıcıyı oluştur
+    // ...userData sayesinde DTO'daki tüm profil bilgileri (boy, kilo, spor) otomatik eklenir
     const newUser = this.userRepository.create({
-      email,
-      name,
-      passwordHash, // Düz 'password' değil, hash'lenmiş olanı kaydediyoruz
+      ...userData,
+      passwordHash,
     });
 
-    // 5. Veritabanına kaydet
+    // 4. Kaydet ve sonucu döndür
     const savedUser = await this.userRepository.save(newUser);
     
-    // Güvenlik: Hash'lenmiş şifreyi asla geri döndürme
+    // Güvenlik: Hash'i çıkarıp döndür
     const { passwordHash: _, ...result } = savedUser;
     return result;
   }
 
-  // nest g resource komutunun oluşturduğu diğer fonksiyonlar:
+  // Tüm kullanıcıları getir
   findAll() {
-    return `This action returns all user`; // Şimdilik böyle kalabilir
+    return this.userRepository.find();
   }
 
-  async findOne(id: string): Promise<User | null> { // <-- DÜZELTİLDİ: 'string'
-    return this.userRepository.findOne({ where: { id } }); // <-- DÜZELTİLDİ: Gerçek veritabanı sorgusu
+  // ID ile bul
+  async findOne(id: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`Kullanıcı #${id} bulunamadı`);
+    }
+    return user;
   }
 
-  // Email ile kullanıcı bulma fonksiyonu
-  // DÜZELTME: 'undefined' yerine 'null' yazdık
+  // E-posta ile bul (Auth işlemleri için)
   async findOneByEmail(email: string): Promise<User | null> {
     return this.userRepository.findOne({ where: { email } });
   }
 
+  // Profil Güncelleme
   async update(id: string, updateUserDto: UpdateUserDto) {
-    // 1. Önce kullanıcıyı bul
-    // (Bunu yapmazsak olmayan birini güncellemeye çalışabiliriz)
-    // preload: TypeORM'in harika bir özelliği. Varsa üzerine yazar, yoksa oluşturur (biz id verdiğimiz için bulup üzerine yazacak)
+    // preload: Varsa üzerine yazar (merge eder), yoksa null döner (çünkü id veriyoruz)
+    // Not: Şifre güncellemesi gerekirse buraya ayrıca logic eklenmeli, 
+    // şu an sadece profil bilgilerini güncelliyoruz.
     const user = await this.userRepository.preload({
       id: id,
       ...updateUserDto,
@@ -76,13 +76,15 @@ export class UserService {
       throw new HttpException(`Kullanıcı #${id} bulunamadı`, HttpStatus.NOT_FOUND);
     }
 
-    // 2. Güncellemeyi kaydet
     const updatedUser = await this.userRepository.save(user);
 
-    // 3. Şifreyi (hash) sonuçtan çıkarıp geri döndür
     const { passwordHash, ...result } = updatedUser;
     return result;
   }
 
-  // remove(id: number) { ... }
+  // Kullanıcı Silme
+  async remove(id: string) {
+    const user = await this.findOne(id); // Önce var mı diye kontrol et (yoksa hata fırlatır)
+    return this.userRepository.remove(user);
+  }
 }
