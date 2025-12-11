@@ -1,12 +1,10 @@
+// coresport-api/src/user/dto/update-user.dto.ts
+
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateUserDto } from './create-user.dto';
-import { IsString, IsOptional } from 'class-validator';
 
-export class UpdateUserDto extends PartialType(CreateUserDto) {
-  // CreateUserDto'daki her şey (email, name, password) isteğe bağlı olarak buraya gelir.
-  // Ek olarak spor dalını da ekliyoruz:
-  
-  @IsOptional()
-  @IsString()
-  sportBranch?: string;
-}
+// PartialType, CreateUserDto içindeki TÜM alanları (email, password, name, sportBranch, weight, height)
+// otomatik olarak alır ve hepsini "optional" (isteğe bağlı) yapar.
+// Bu yüzden buraya tekrar elle yazmamıza gerek kalmadı.
+
+export class UpdateUserDto extends PartialType(CreateUserDto) {}
