@@ -1,22 +1,21 @@
-// coresport-api/src/auth/auth.controller.ts
-
-import { Controller, Post, Body, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Body, UnauthorizedException, HttpCode, HttpStatus } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { LoginDto } from './dto/login.dto';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Post('login')
-  async login(@Body() body) {
-    // 1. Kullanıcıyı doğrula
-    const user = await this.authService.validateUser(body.email, body.password);
+  @HttpCode(HttpStatus.OK) // Başarılı giriş 200 OK döner (varsayılan 201'dir)
+  async login(@Body() loginDto: LoginDto) {
+    // LoginDto sayesinde email ve şifre kuralları otomatik kontrol edilir
+    const user = await this.authService.validateUser(loginDto.email, loginDto.password);
     
     if (!user) {
       throw new UnauthorizedException('Hatalı email veya şifre');
     }
 
-    // 2. Doğruysa Token ver
     return this.authService.login(user);
   }
 }
