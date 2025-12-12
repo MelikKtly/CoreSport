@@ -7,38 +7,47 @@ import {
   Index,
 } from 'typeorm';
 
-@Entity('users') // Veritabanındaki tablo adını 'users' olarak belirledik
+@Entity('users')
 export class User {
   
-  @PrimaryGeneratedColumn('uuid') // Otomatik artan 'uuid' tipinde bir ID
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true }) // E-posta benzersiz olmalı
-  @Index() // Arama performansı için indekslendi
+  @Column({ unique: true })
+  @Index()
   email: string;
 
-  @Column({ nullable: true }) // Ad/Soyad
+  @Column({ nullable: true })
   name: string;
 
   @Column()
-  passwordHash: string; // Şifrenin hashlenmiş hali
+  passwordHash: string;
 
-  // --- Yeni Eklenen Alanlar ---
+  // --- Profil ve Fiziksel Bilgiler ---
 
   @Column({ nullable: true })
-  sportBranch: string; // Spor Dalı (Örn: 'Basketbol', 'Fitness')
+  sportBranch: string; // Seçtiği Branş
+
+  @Column('simple-array', { nullable: true }) 
+  interests: string[]; // YENİ: İlgi Alanları (Örn: ["Yoga", "Kardiyo"])
+
+  @Column({ nullable: true })
+  motivation: string; // YENİ: Motivasyon Kaynağı (Örn: "Kas yapmak")
+
+  @Column('int', { nullable: true })
+  age: number; // YENİ: Yaş
 
   @Column('float', { nullable: true })
-  weight: number; // Kilo (kg cinsinden, ondalıklı olabilir örn: 75.5)
+  weight: number; // Kilo
 
   @Column('float', { nullable: true })
-  height: number; // Boy (cm cinsinden, ondalıklı olabilir örn: 182)
+  height: number; // Boy
 
   // ---------------------------
 
-  @CreateDateColumn() // Kayıt tarihi
+  @CreateDateColumn()
   createdAt: Date;
 
-  @UpdateDateColumn() // Güncelleme tarihi
+  @UpdateDateColumn()
   updatedAt: Date;
 }
