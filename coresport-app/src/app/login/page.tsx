@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+// AnimatedBackground bileşeni src/app/components/AnimatedBackground.tsx yolunda olmalı
 import AnimatedBackground from '../components/AnimatedBackground';
 
 export default function LoginPage() {
@@ -12,14 +13,28 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // JWT Token'ı çözüp içindeki UserID'yi alma fonksiyonu
+  const parseJwt = (token: string) => {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      return JSON.parse(jsonPayload);
+    } catch (e) {
+      return null;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
     try {
-      // Backend'e istek at (Port 3001)
-      const res = await fetch('http://localhost:3001/auth/login', {
+      // Backend'e istek at (127.0.0.1 bağlantı hatalarını azaltır)
+      const res = await fetch('http://127.0.0.1:3001/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -31,15 +46,33 @@ export default function LoginPage() {
         throw new Error(data.message || 'Giriş başarısız');
       }
 
-      // Başarılı ise Token'ı kaydet
-      localStorage.setItem('token', data.access_token);
-      console.log('Giriş Başarılı');
+      // --- KRİTİK DÜZELTME BAŞLANGICI ---
       
-      // Ana sayfaya yönlendir
-      router.push('/'); 
+      // 1. Token'ı 'accessToken' adıyla kaydet (Onboarding sayfası bunu arıyor)
+      localStorage.setItem('token', data.access_token);
+      
+      // 2. Token içinden UserID'yi al ve kaydet
+      const decodedToken = parseJwt(data.access_token);
+      if (decodedToken && decodedToken.sub) {
+        localStorage.setItem('userId', decodedToken.sub);
+        console.log('Giriş Başarılı. UserID:', decodedToken.sub);
+      } else {
+        // Yedek plan: Eğer token parse edilemezse backend yanıtındaki user objesine bak
+        if (data.user && data.user.id) {
+             localStorage.setItem('userId', data.user.id);
+        } else {
+             throw new Error("Token geçersiz, kullanıcı kimliği alınamadı.");
+        }
+      }
+
+      // 3. Onboarding sayfasına yönlendir
+      router.push('/onboarding');
+      
+      // --- KRİTİK DÜZELTME BİTİŞİ ---
       
     } catch (err: any) {
-      setError('Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.');
+      console.error("Login Hatası:", err);
+      setError(err.message || 'Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.');
     } finally {
       setIsLoading(false);
     }
@@ -51,7 +84,7 @@ export default function LoginPage() {
       {/* Hareketli Arka Plan */}
       <AnimatedBackground />
       
-      {/* Glassmorphism Kart (z-10 ile öne çıkardık) */}
+      {/* Glassmorphism Kart */}
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-lg shadow-2xl animate-fade-in-up relative z-10">
         
         <div className="text-center mb-8">

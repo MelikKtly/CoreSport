@@ -1,29 +1,21 @@
-// coresport-api/src/main.ts
-
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common'; // <-- BU SATIRI EKLEYİN
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // --- YENİ KOD BAŞLANGICI ---
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
 
-  // 1. DTO doğrulama kurallarını global olarak etkinleştir
-  // Bu, CreateUserDto'daki @IsEmail, @IsNotEmpty kurallarını çalıştırır
-  app.useGlobalPipes(new ValidationPipe());
-
-  // 2. Frontend'den (localhost:3000) gelen isteklere izin ver
-  // Bu, "Load failed" (CORS) hatasını düzeltir
+  // --- CORS AYARLARI (KRİTİK) ---
+  // "Authorization" başlığına izin vermezsek, tarayıcı isteği bloklar.
   app.enableCors({
-    origin: 'http://localhost:3000', // Sadece bu adresten gelenlere izin ver
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    allowedHeaders: 'Content-Type, Accept',
+    origin: true, // Geliştirme ortamı için tüm kaynaklara izin ver
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+    allowedHeaders: 'Content-Type, Accept, Authorization', // <-- BU KISIM EKSİK OLABİLİR
   });
 
-  // --- YENİ KOD BİTİŞİ ---
-
-  // Sizin kodunuz (bu gayet iyi, böyle kalabilir)
-  await app.listen(process.env.PORT ?? 3001);
+  await app.listen(3001);
 }
 bootstrap();
