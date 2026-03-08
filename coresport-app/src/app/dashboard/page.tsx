@@ -2,276 +2,348 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Play, 
-  Flame, 
-  Clock, 
-  Trophy, 
-  Calendar, 
-  Home, 
-  BarChart2, 
-  User, 
-  Bell, 
-  ChevronRight,
-  Loader2
+import {
+  Play, Flame, Clock, Trophy, Home, BarChart2,
+  User, Bell, ChevronRight, Loader2, LogOut,
+  Zap, Shield, Target, Activity, TrendingUp, Star,
+  Scale, Ruler, Calendar
 } from 'lucide-react';
 
-// Kullanıcı Tipi
 interface UserData {
-  id: string;
-  name: string;
-  sportBranch: string;
-  weight: number;
-  height: number;
+  id: string; name: string; email: string;
+  sportBranch: string; position: string; level: string;
+  weight: number; height: number; age: number;
+  motivation: string; gender: string;
 }
+
+// Branşa göre konfigürasyon
+const branchConfig: Record<string, {
+  link: string; gradient: string; bgGlow: string;
+  label: string; heroTitle: string; heroSub: string;
+  workoutType: string; kcal: string; duration: string; emoji: string;
+}> = {
+  'Amerikan Futbolu': {
+    link: '/american-football', gradient: 'from-amber-500 to-orange-700',
+    bgGlow: 'bg-amber-500/10', label: 'Amerikan Futbolu', emoji: '🏈',
+    heroTitle: 'Sahaya Dön', heroSub: 'Seni Bekleyen Antrenman Hazır',
+    workoutType: 'Pozisyon & Kondisyon', kcal: '480-600', duration: '65',
+  },
+  'Basketbol': {
+    link: '/basketball', gradient: 'from-orange-500 to-red-700',
+    bgGlow: 'bg-orange-500/10', label: 'Basketbol', emoji: '🏀',
+    heroTitle: 'Kornere Git', heroSub: "Bugün Sahaya Çık",
+    workoutType: 'Teknik & Kondisyon', kcal: '400-520', duration: '60',
+  },
+  'Snowboard': {
+    link: '/snowboard', gradient: 'from-blue-400 to-cyan-700',
+    bgGlow: 'bg-blue-500/10', label: 'Snowboard', emoji: '🏔️',
+    heroTitle: 'Dağa Çık', heroSub: 'Denge ve Core Gücü Seni Bekliyor',
+    workoutType: 'Core & Denge', kcal: '320-420', duration: '55',
+  },
+  'Fitness': {
+    link: '/gym', gradient: 'from-violet-500 to-purple-800',
+    bgGlow: 'bg-violet-500/10', label: 'Fitness & Gym', emoji: '💪',
+    heroTitle: 'Iron Paradise', heroSub: 'Vücudunu İnşa Et',
+    workoutType: 'Hypertrophy', kcal: '350-500', duration: '60',
+  },
+};
+
+const levelConfig: Record<string, { color: string; bg: string; border: string; label: string }> = {
+  'Başlangıç': { color: 'text-emerald-400', bg: 'bg-emerald-500/15', border: 'border-emerald-500/30', label: '🌱 Başlangıç' },
+  'Orta': { color: 'text-yellow-400', bg: 'bg-yellow-500/15', border: 'border-yellow-500/30', label: '⚡️ Orta' },
+  'İleri': { color: 'text-red-400', bg: 'bg-red-500/15', border: 'border-red-500/30', label: '🏆 İleri' },
+};
+
+const weekDays = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+const today = new Date().getDay(); // 0=Paz, 1=Pzt...
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('home');
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('home');
 
-  // --- 1. BACKEND'DEN VERİ ÇEKME ---
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const userId = localStorage.getItem('userId');
-        const token = localStorage.getItem('accessToken');
-
-        if (!userId || !token) {
-          router.push('/login');
-          return;
-        }
-
-        const response = await fetch(`http://localhost:3001/user/${userId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+        if (!userId || !token) { router.push('/login'); return; }
+        const res = await fetch(`http://127.0.0.1:3001/user/${userId}`, {
+          headers: { Authorization: `Bearer ${token}` }
         });
-
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data);
-        } else {
-          localStorage.clear();
-          router.push('/login');
-        }
-      } catch (error) {
-        console.error("Veri hatası:", error);
-      } finally {
-        setLoading(false);
-      }
+        if (res.ok) setUser(await res.json());
+        else { localStorage.clear(); router.push('/login'); }
+      } catch { /* ignore */ }
+      finally { setLoading(false); }
     };
-
     fetchUser();
   }, [router]);
 
-  // --- 2. BRANŞA GÖRE İÇERİK AYARLAMA ---
-  const getBranchContent = (branch: string = 'Fitness') => {
-    // Branş ismini normalize et (İlk harf büyük, kalanı küçük: 'fitness' -> 'Fitness')
-    // Bu sayede veritabanında küçük harf kayıtlı olsa bile eşleşme sağlanır.
-    const normalizedBranch = branch 
-      ? branch.charAt(0).toUpperCase() + branch.slice(1).toLowerCase() 
-      : 'Fitness';
+  const handleLogout = () => { localStorage.clear(); router.push('/login'); };
 
-    switch (normalizedBranch) {
-      case 'Basketbol':
-        return {
-          title: "Saha Hakimiyeti & Şut",
-          category: "Basketbol Drilleri",
-          image: "https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80",
-          link: "/basketball"
-        };
-      case 'Snowboard':
-        return {
-          title: "Denge & Core Gücü",
-          category: "Kış Hazırlığı",
-          image: "https://images.unsplash.com/photo-1522056615691-16327385d95e?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80",
-          link: "/snowboard"
-        };
-      case 'Amerikan futbolu': // Normalize edilse bile iki kelimeli olabilir
-      case 'Amerikan Futbolu':
-        return {
-          title: "Patlayıcı Güç & Hız",
-          category: "Saha Performansı",
-          image: "https://images.unsplash.com/photo-1566577739112-5180d4bf9390?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80",
-          link: "/american-football"
-        };
-      default: // Gym / Fitness
-        return {
-          title: "Hypertrophy Push",
-          category: "Vücut Geliştirme",
-          image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80",
-          link: "/gym"
-        };
-    }
-  };
+  if (loading) return (
+    <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center">
+      <Loader2 className="w-10 h-10 text-white/30 animate-spin" />
+    </div>
+  );
 
-  const heroContent = getBranchContent(user?.sportBranch);
+  const branch = user?.sportBranch || 'Fitness';
+  const cfg = branchConfig[branch] || branchConfig['Fitness'];
+  const lvl = levelConfig[user?.level || 'Başlangıç'] || levelConfig['Başlangıç'];
 
-  // --- Yükleme Ekranı ---
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-      </div>
-    );
-  }
+  // VKİ hesabı
+  const bmi = user?.weight && user?.height
+    ? (user.weight / Math.pow(user.height / 100, 2)).toFixed(1)
+    : null;
+  const bmiLabel = bmi
+    ? Number(bmi) < 18.5 ? 'Zayıf'
+      : Number(bmi) < 25 ? 'Normal'
+        : Number(bmi) < 30 ? 'Fazla Kilolu' : 'Obez'
+    : null;
+
+  // Haftanın günleri (bugün aktif)
+  const mondayOffset = today === 0 ? -6 : 1 - today; // pazartesiyi bul
+  const weekItems = weekDays.map((d, i) => {
+    const dayOffset = mondayOffset + i;
+    const isToday = dayOffset === 0;
+    const isPast = dayOffset < 0;
+    return { label: d, isToday, isPast };
+  });
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans pb-24 relative overflow-x-hidden">
-      
-      {/* --- Header --- */}
-      <header className="px-6 pt-8 pb-4 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-30">
+    <div className="min-h-screen bg-[#0d0d0d] text-gray-100 font-sans pb-28 overflow-x-hidden">
+
+      {/* ── HEADER ────────────────────────────────── */}
+      <header className="sticky top-0 z-30 bg-[#0d0d0d]/90 backdrop-blur-xl border-b border-white/5 px-5 py-4 flex items-center justify-between">
         <div>
-          <p className="text-gray-500 text-sm font-bold tracking-wide uppercase">Hoş Geldin,</p>
-          {/* Dinamik İsim */}
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight capitalize">
-            {user?.name || 'Sporcu'} ⚡️
+          <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Hoş Geldin</p>
+          <h1 className="text-2xl font-black text-white capitalize tracking-tight leading-none mt-0.5">
+            {user?.name || 'Sporcu'} <span className="text-lg">⚡️</span>
           </h1>
         </div>
-        <button className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors relative">
-          <Bell size={20} />
-          <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button className="relative w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-white border border-white/8 transition-colors">
+            <Bell size={18} />
+            <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-red-500 rounded-full" />
+          </button>
+          <button onClick={handleLogout} className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-gray-500 hover:text-red-400 border border-white/8 transition-colors">
+            <LogOut size={16} />
+          </button>
+        </div>
       </header>
 
-      <main className="px-6 pt-4 space-y-8">
-        
-        {/* --- Hero Kart: Dinamik Antrenman --- */}
-        <section>
-          <div className="flex justify-between items-end mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Günün Antrenmanı</h2>
-            <button className="text-blue-600 text-sm font-bold hover:underline">Tümünü Gör</button>
-          </div>
-          
-          <div 
-            onClick={() => router.push(heroContent.link)} // Karta tıklayınca ilgili spor sayfasına git
-            className="relative w-full h-96 rounded-[2rem] overflow-hidden shadow-2xl group cursor-pointer hover:shadow-xl transition-shadow"
-          >
-            <img 
-              src={heroContent.image} 
-              alt="Workout" 
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90"></div>
-            
-            <div className="absolute bottom-0 left-0 w-full p-6">
-              <div className="inline-block px-3 py-1 bg-blue-600/90 backdrop-blur-sm text-white text-xs font-bold rounded-full mb-3">
-                {heroContent.category}
-              </div>
-              <h3 className="text-3xl font-black text-white mb-2 leading-tight tracking-tight">
-                {heroContent.title}
-              </h3>
-              
-              <div className="flex items-center space-x-4 text-gray-300 text-sm mb-6 font-medium">
-                <div className="flex items-center"><Clock size={16} className="mr-1.5 text-blue-400"/> 45 dk</div>
-                <div className="flex items-center"><Flame size={16} className="mr-1.5 text-orange-400"/> 520 kcal</div>
-              </div>
+      <main className="px-5 pt-5 space-y-6 max-w-2xl mx-auto">
 
-              {/* Başla Butonu - Tıklama olayını (onClick) garanti altına aldık */}
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation(); // Kart tıklamasıyla çakışmasın
-                  router.push(heroContent.link);
-                }}
-                className="w-full bg-white text-black py-4 rounded-2xl font-bold flex items-center justify-center hover:bg-gray-100 transition-transform active:scale-95 cursor-pointer"
+        {/* ── ROZET SATIRI ──────────────────────────── */}
+        <div className="flex flex-wrap gap-2">
+          <span className={`px-3 py-1 rounded-full text-xs font-bold border ${lvl.bg} ${lvl.color} ${lvl.border}`}>
+            {lvl.label}
+          </span>
+          <span className="px-3 py-1 rounded-full text-xs font-bold border border-white/10 bg-white/5 text-gray-300">
+            {cfg.emoji} {cfg.label}
+          </span>
+          {user?.position && (
+            <span className="px-3 py-1 rounded-full text-xs font-bold border border-amber-500/20 bg-amber-500/10 text-amber-400">
+              {user.position}
+            </span>
+          )}
+        </div>
+
+        {/* ── HERO KARTI ─────────────────────────────── */}
+        <section
+          onClick={() => router.push(cfg.link)}
+          className="relative w-full rounded-3xl overflow-hidden cursor-pointer group"
+          style={{ height: '220px' }}
+        >
+          {/* Gradient arka plan */}
+          <div className={`absolute inset-0 bg-gradient-to-br ${cfg.gradient} opacity-90`} />
+          {/* Desen */}
+          <div className="absolute inset-0 opacity-10" style={{
+            backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
+            backgroundSize: '24px 24px'
+          }} />
+          {/* İçerik */}
+          <div className="relative h-full flex flex-col justify-between p-6">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-widest text-white/70">{cfg.workoutType}</span>
+              <h2 className="text-3xl font-black text-white mt-1 leading-tight drop-shadow">{cfg.heroTitle}</h2>
+              <p className="text-white/70 text-sm font-medium mt-1">{cfg.heroSub}</p>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex gap-4 text-white/80 text-sm font-medium">
+                <span className="flex items-center gap-1"><Clock size={14} /> {cfg.duration} dk</span>
+                <span className="flex items-center gap-1"><Flame size={14} /> {cfg.kcal} kcal</span>
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); router.push(cfg.link); }}
+                className="flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded-2xl font-bold text-sm shadow-lg hover:scale-105 active:scale-95 transition-transform"
               >
-                <Play size={20} fill="currentColor" className="mr-2" /> Başla
+                <Play size={14} fill="black" /> Başla
               </button>
             </div>
           </div>
         </section>
 
-        {/* --- İstatistik Özeti --- */}
-        <section className="grid grid-cols-3 gap-3">
-            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
-                <div className="w-10 h-10 bg-orange-50 rounded-full flex items-center justify-center text-orange-500 mb-2">
-                    <Flame size={20} />
-                </div>
-                <span className="text-xl font-black text-gray-900">1,240</span>
-                <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wide">Kcal</span>
+        {/* ── İSTATİSTİK KARTLARI ─────────────────────── */}
+        <section className="grid grid-cols-2 gap-3">
+          {/* VKİ */}
+          <div className="bg-white/5 border border-white/8 rounded-3xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                <Scale size={16} className="text-blue-400" />
+              </div>
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-500">VKİ</span>
             </div>
-            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
-                <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 mb-2">
-                    <User size={20} />
-                </div>
-                {/* Dinamik Kilo Gösterimi */}
-                <span className="text-xl font-black text-gray-900">{user?.weight || '-'}</span>
-                <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wide">Kg</span>
+            <p className="text-3xl font-black text-white">{bmi ?? '—'}</p>
+            <p className={`text-xs font-bold mt-1 ${bmiLabel === 'Normal' ? 'text-emerald-400' :
+                bmiLabel === 'Zayıf' ? 'text-blue-400' : 'text-orange-400'
+              }`}>{bmiLabel ?? 'Henüz bilgi yok'}</p>
+          </div>
+
+          {/* Kilo & Boy */}
+          <div className="bg-white/5 border border-white/8 rounded-3xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                <Ruler size={16} className="text-emerald-400" />
+              </div>
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Ölçüler</span>
             </div>
-            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
-                <div className="w-10 h-10 bg-purple-50 rounded-full flex items-center justify-center text-purple-500 mb-2">
-                    <Trophy size={20} />
-                </div>
-                <span className="text-xl font-black text-gray-900">3</span>
-                <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wide">Gün Streak</span>
+            <div className="space-y-1">
+              <p className="text-white font-bold">
+                <span className="text-2xl font-black">{user?.weight ?? '—'}</span>
+                <span className="text-gray-500 text-sm ml-1">kg</span>
+              </p>
+              <p className="text-white font-bold">
+                <span className="text-xl font-black">{user?.height ?? '—'}</span>
+                <span className="text-gray-500 text-sm ml-1">cm</span>
+              </p>
             </div>
+          </div>
+
+          {/* Motivasyon */}
+          <div className="bg-white/5 border border-white/8 rounded-3xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-xl bg-yellow-500/20 flex items-center justify-center">
+                <Star size={16} className="text-yellow-400" />
+              </div>
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Hedef</span>
+            </div>
+            <p className="text-white font-bold text-sm leading-snug">{user?.motivation || '—'}</p>
+          </div>
+
+          {/* Yaş */}
+          <div className="bg-white/5 border border-white/8 rounded-3xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                <User size={16} className="text-purple-400" />
+              </div>
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Yaş & Cinsiyet</span>
+            </div>
+            <p className="text-3xl font-black text-white">{user?.age ?? '—'}</p>
+            <p className="text-xs font-bold mt-1 text-gray-400">{user?.gender || '—'}</p>
+          </div>
         </section>
 
-        {/* --- Haftalık Program --- */}
+        {/* ── HAFTALIK TAKVİM ──────────────────────────── */}
         <section>
-             <h2 className="text-xl font-bold text-gray-900 mb-4">Bu Hafta</h2>
-             <div className="flex space-x-3 overflow-x-auto pb-4 -mx-6 px-6 custom-scrollbar">
-                {[
-                  { day: "Pzt", title: "Başlangıç", status: "Tamamlandı", active: false },
-                  { day: "Sal", title: "Kardiyo", status: "Tamamlandı", active: false },
-                  { day: "Çar", title: "Teknik", status: "Bugün", active: true },
-                  { day: "Per", title: "Dinlenme", status: "Bekliyor", active: false },
-                  { day: "Cum", title: "Güç", status: "Bekliyor", active: false },
-                ].map((item, index) => (
-                    <div 
-                        key={index} 
-                        className={`
-                            min-w-[100px] p-4 rounded-3xl flex flex-col justify-between h-32 border transition-all duration-300
-                            ${item.active 
-                                ? 'bg-black text-white border-black shadow-lg shadow-gray-300 transform -translate-y-1' 
-                                : 'bg-white text-gray-500 border-gray-100'}
-                        `}
-                    >
-                        <span className="text-xs font-bold uppercase tracking-widest opacity-60">{item.day}</span>
-                        <div>
-                            <span className={`block text-lg font-bold leading-tight mb-1 ${item.active ? 'text-white' : 'text-gray-900'}`}>{item.title}</span>
-                            {item.active && <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>}
-                        </div>
-                    </div>
-                ))}
-             </div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-black text-white flex items-center gap-2">
+              <Calendar size={18} className="text-amber-500" /> Bu Hafta
+            </h2>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+            {weekItems.map((item, i) => (
+              <div
+                key={i}
+                className={`flex-shrink-0 flex flex-col items-center justify-center w-12 h-16 rounded-2xl border transition-all ${item.isToday
+                    ? `bg-gradient-to-br ${cfg.gradient} border-transparent shadow-lg`
+                    : item.isPast
+                      ? 'bg-white/5 border-white/5 opacity-50'
+                      : 'bg-white/5 border-white/8'
+                  }`}
+              >
+                <span className={`text-xs font-bold ${item.isToday ? 'text-white' : 'text-gray-500'}`}>{item.label}</span>
+                {item.isPast && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5" />}
+                {item.isToday && <div className="w-1.5 h-1.5 rounded-full bg-white mt-1.5 animate-pulse" />}
+              </div>
+            ))}
+          </div>
         </section>
+
+        {/* ── HIZLI ERİŞİM LINKLERI ─────────────────────── */}
+        <section>
+          <h2 className="text-lg font-black text-white mb-4 flex items-center gap-2">
+            <Zap size={18} className="text-amber-500" /> Hızlı Erişim
+          </h2>
+          <div className="space-y-3">
+            {[
+              {
+                title: `${cfg.emoji} ${cfg.label} Programı`,
+                desc: `${user?.position ? user.position + ' · ' : ''}${user?.level || ''} seviye plan`,
+                link: cfg.link,
+                icon: <Play size={18} className="text-white" fill="white" />,
+                grad: cfg.gradient,
+              },
+              {
+                title: '💪 Fitness & Gym',
+                desc: 'Push / Pull / Legs rutini',
+                link: '/gym',
+                icon: <Activity size={18} className="text-violet-400" />,
+                grad: 'from-violet-500 to-purple-700',
+              },
+            ].map((item, i) => (
+              <button
+                key={i}
+                onClick={() => router.push(item.link)}
+                className="w-full flex items-center gap-4 bg-white/5 hover:bg-white/10 border border-white/8 rounded-2xl px-5 py-4 transition-all group text-left"
+              >
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${item.grad} flex items-center justify-center flex-shrink-0`}>
+                  {item.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-white text-sm">{item.title}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 truncate">{item.desc}</p>
+                </div>
+                <ChevronRight size={16} className="text-gray-600 group-hover:text-gray-400 transition-colors flex-shrink-0" />
+              </button>
+            ))}
+          </div>
+        </section>
+
       </main>
 
-      {/* --- Alt Navigasyon --- */}
-      <nav className="fixed bottom-0 w-full bg-white/90 backdrop-blur-xl border-t border-gray-200 pb-safe pt-2 px-6 z-40">
-        <div className="flex justify-between items-center max-w-md mx-auto h-16">
-            <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center justify-center w-12 h-12 ${activeTab === 'home' ? 'text-blue-600' : 'text-gray-400'}`}>
-                <Home size={24} strokeWidth={activeTab === 'home' ? 3 : 2} />
-            </button>
-            
-            <button onClick={() => setActiveTab('schedule')} className={`flex flex-col items-center justify-center w-12 h-12 ${activeTab === 'schedule' ? 'text-blue-600' : 'text-gray-400'}`}>
-                <Calendar size={24} strokeWidth={activeTab === 'schedule' ? 3 : 2} />
-            </button>
-
-            {/* Büyük Play Butonu - Yönlendirmeyi burada da ekledik */}
-            <button 
-                onClick={() => router.push(heroContent.link)}
-                className="w-14 h-14 bg-black rounded-full flex items-center justify-center text-white shadow-xl shadow-blue-900/20 transform -translate-y-6 hover:scale-105 transition-transform border-4 border-gray-50 cursor-pointer"
-            >
-                <Play size={24} fill="currentColor" className="ml-1" />
-            </button>
-
-            <button onClick={() => setActiveTab('stats')} className={`flex flex-col items-center justify-center w-12 h-12 ${activeTab === 'stats' ? 'text-blue-600' : 'text-gray-400'}`}>
-                <BarChart2 size={24} strokeWidth={activeTab === 'stats' ? 3 : 2} />
-            </button>
-
-            <button onClick={() => setActiveTab('profile')} className={`flex flex-col items-center justify-center w-12 h-12 ${activeTab === 'profile' ? 'text-blue-600' : 'text-gray-400'}`}>
-                <User size={24} strokeWidth={activeTab === 'profile' ? 3 : 2} />
-            </button>
+      {/* ── ALT NAVİGASYON ──────────────────────────── */}
+      <nav className="fixed bottom-0 left-0 w-full z-40 bg-[#0d0d0d]/95 backdrop-blur-xl border-t border-white/5">
+        <div className="flex items-center justify-around max-w-2xl mx-auto px-6 h-20">
+          {[
+            { id: 'home', icon: <Home size={22} />, label: 'Ana Sayfa' },
+            { id: 'schedule', icon: <Calendar size={22} />, label: 'Program' },
+            { id: 'play', special: true },
+            { id: 'stats', icon: <BarChart2 size={22} />, label: 'İstatistik' },
+            { id: 'profile', icon: <User size={22} />, label: 'Profil' },
+          ].map((item) =>
+            item.special ? (
+              <button
+                key="play"
+                onClick={() => router.push(cfg.link)}
+                className={`-mt-8 w-16 h-16 rounded-full bg-gradient-to-br ${cfg.gradient} flex items-center justify-center shadow-2xl border-4 border-[#0d0d0d] hover:scale-110 active:scale-95 transition-transform`}
+              >
+                <Play size={22} fill="white" className="text-white ml-0.5" />
+              </button>
+            ) : (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id!)}
+                className={`flex flex-col items-center gap-1 transition-colors ${activeTab === item.id ? 'text-white' : 'text-gray-600 hover:text-gray-400'}`}
+              >
+                {item.icon}
+                <span className="text-[10px] font-bold">{item.label}</span>
+              </button>
+            )
+          )}
         </div>
       </nav>
-      
-      <style jsx global>{`
-        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
-        .custom-scrollbar::-webkit-scrollbar { display: none; }
-        .custom-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
     </div>
   );
 }
