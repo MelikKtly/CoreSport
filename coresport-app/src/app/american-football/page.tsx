@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, LogOut, User as UserIcon, Loader2, ChevronRight, Flame, Timer, TrendingUp, Shield, Zap, Target, Star, Activity } from 'lucide-react';
+import { ArrowLeft, LogOut, User as UserIcon, Loader2, ChevronRight, Flame, Timer, TrendingUp, Shield, Zap, Target, Star, Activity, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { WorkoutTracker } from '@/components/WorkoutTracker';
 
 const API_URL = 'http://127.0.0.1:3001';
 
@@ -436,6 +437,7 @@ export default function AmericanFootballPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [expandedDay, setExpandedDay] = useState<number | null>(0);
+    const [activeWorkout, setActiveWorkout] = useState<{ title: string; exercises: { name: string; sets: string; reps: string; tip: string }[] } | null>(null);
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -590,12 +592,28 @@ export default function AmericanFootballPage() {
                                             </div>
                                         </div>
                                     ))}
+                                    {/* Antrenmana Başla Butonu */}
+                                    <button
+                                        onClick={() => setActiveWorkout({ title: workout.title, exercises: workout.exercises })}
+                                        className="w-full mt-2 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:brightness-110 active:scale-95 transition-all shadow-lg"
+                                    >
+                                        <Play size={16} fill="white" /> Antrenmana Başla
+                                    </button>
                                 </div>
                             )}
                         </div>
                     );
                 })}
             </main>
+
+            {/* WorkoutTracker Overlay */}
+            {activeWorkout && (
+                <WorkoutTracker
+                    workoutTitle={activeWorkout.title}
+                    exercises={activeWorkout.exercises}
+                    onClose={() => setActiveWorkout(null)}
+                />
+            )}
         </div>
     );
 }

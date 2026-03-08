@@ -1,12 +1,11 @@
-// coresport-api/src/app.module.ts
-
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule, ConfigService } from '@nestjs/config'; // Import ettik
-import { TypeOrmModule } from '@nestjs/typeorm'; // Import ettik
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
+import { WorkoutLogModule } from './workout-log/workout-log.module';
 
 @Module({
   imports: [
@@ -32,10 +31,10 @@ import { AuthModule } from './auth/auth.module';
     }),
 
     UserModule,
-
     AuthModule,
+    WorkoutLogModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
