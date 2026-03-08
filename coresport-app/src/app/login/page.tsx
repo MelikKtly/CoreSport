@@ -54,20 +54,34 @@ export default function LoginPage() {
 
       // 2. Token içinden UserID'yi al ve kaydet
       const decodedToken = parseJwt(data.access_token);
+      let userId: string | null = null;
       if (decodedToken && decodedToken.sub) {
-        localStorage.setItem('userId', decodedToken.sub);
-        console.log('Giriş Başarılı. UserID:', decodedToken.sub);
+        userId = decodedToken.sub;
+        localStorage.setItem('userId', userId as string);
+      } else if (data.user?.id) {
+        userId = data.user.id;
+        localStorage.setItem('userId', userId as string);
       } else {
-        // Yedek plan: Eğer token parse edilemezse backend yanıtındaki user objesine bak
-        if (data.user && data.user.id) {
-          localStorage.setItem('userId', data.user.id);
-        } else {
-          throw new Error("Token geçersiz, kullanıcı kimliği alınamadı.");
-        }
+        throw new Error("Token geçersiz, kullanıcı kimliği alınamadı.");
       }
 
-      // 3. Onboarding sayfasına yönlendir
-      router.push('/onboarding');
+      // 3. Kullanıcı daha önce onboarding yaptı mı? (sportBranch dolu mu?)
+      const profileRes = await fetch(`http://127.0.0.1:3001/user/${userId}`, {
+        headers: { Authorization: `Bearer ${data.access_token}` }
+      });
+
+      if (profileRes.ok) {
+        const profile = await profileRes.json();
+        // Onboarding tamamlanmışsa doğrudan dashboard'a git
+        if (profile.sportBranch) {
+          router.push('/dashboard');
+        } else {
+          router.push('/onboarding');
+        }
+      } else {
+        // Profil alınamazsa güvenli tarafta kal: onboarding'e gönder
+        router.push('/onboarding');
+      }
 
       // --- KRİTİK DÜZELTME BİTİŞİ ---
 
