@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Play, Flame, Clock, Trophy, Home, BarChart2,
+  Play, Flame, Clock, Home, BarChart2,
   User, Bell, ChevronRight, Loader2, LogOut,
-  Zap, Shield, Target, Activity, TrendingUp, Star,
-  Scale, Ruler, Calendar
+  Scale, Ruler, Calendar, Star, TrendingUp,
+  ChevronDown, Dumbbell, Trophy
 } from 'lucide-react';
 
 interface UserData {
@@ -16,71 +16,130 @@ interface UserData {
   motivation: string; gender: string;
 }
 
-// Branşa göre konfigürasyon
-const branchConfig: Record<string, {
-  link: string; gradient: string; bgGlow: string;
-  label: string; heroTitle: string; heroSub: string;
-  workoutType: string; kcal: string; duration: string; emoji: string;
-}> = {
-  'Amerikan Futbolu': {
-    link: '/american-football', gradient: 'from-amber-500 to-orange-700',
-    bgGlow: 'bg-amber-500/10', label: 'Amerikan Futbolu', emoji: '🏈',
-    heroTitle: 'Sahaya Dön', heroSub: 'Seni Bekleyen Antrenman Hazır',
-    workoutType: 'Pozisyon & Kondisyon', kcal: '480-600', duration: '65',
-  },
-  'Basketbol': {
-    link: '/basketball', gradient: 'from-orange-500 to-red-700',
-    bgGlow: 'bg-orange-500/10', label: 'Basketbol', emoji: '🏀',
-    heroTitle: 'Kornere Git', heroSub: "Bugün Sahaya Çık",
-    workoutType: 'Teknik & Kondisyon', kcal: '400-520', duration: '60',
-  },
-  'Snowboard': {
-    link: '/snowboard', gradient: 'from-blue-400 to-cyan-700',
-    bgGlow: 'bg-blue-500/10', label: 'Snowboard', emoji: '🏔️',
-    heroTitle: 'Dağa Çık', heroSub: 'Denge ve Core Gücü Seni Bekliyor',
-    workoutType: 'Core & Denge', kcal: '320-420', duration: '55',
-  },
-  'Fitness': {
-    link: '/gym', gradient: 'from-violet-500 to-purple-800',
-    bgGlow: 'bg-violet-500/10', label: 'Fitness & Gym', emoji: '💪',
-    heroTitle: 'Iron Paradise', heroSub: 'Vücudunu İnşa Et',
-    workoutType: 'Hypertrophy', kcal: '350-500', duration: '60',
-  },
+interface WorkoutLog {
+  id: string;
+  workoutTitle: string;
+  durationMinutes: number;
+  totalSets: number;
+  totalReps: number;
+  totalWeightKg: number | null;
+  notes: string;
+  exercises: { name: string; sets: number; reps: number; weightKg: number | null; completed: boolean }[];
+  createdAt: string;
+}
+
+interface Stats {
+  totalSessions: number;
+  totalMinutes: number;
+  totalSets: number;
+  totalWeightKg: number;
+  weeklySessions: number;
+  weeklyMinutes: number;
+  recentLogs: WorkoutLog[];
+}
+
+// Branş konfigürasyonu
+const branchConfig: Record<string, { link: string; gradient: string; label: string; emoji: string; kcal: string; duration: string }> = {
+  'Amerikan Futbolu': { link: '/american-football', gradient: 'from-amber-500 to-orange-600', label: 'Amerikan Futbolu', emoji: '🏈', kcal: '480-600', duration: '65' },
+  'Basketbol': { link: '/basketball', gradient: 'from-orange-500 to-red-600', label: 'Basketbol', emoji: '🏀', kcal: '400-520', duration: '60' },
+  'Snowboard': { link: '/snowboard', gradient: 'from-blue-400 to-cyan-600', label: 'Snowboard', emoji: '🏔️', kcal: '320-420', duration: '55' },
+  'Fitness': { link: '/gym', gradient: 'from-violet-500 to-purple-700', label: 'Fitness & Gym', emoji: '💪', kcal: '350-500', duration: '60' },
 };
 
-const levelConfig: Record<string, { color: string; bg: string; border: string; label: string }> = {
+const levelCfg: Record<string, { color: string; bg: string; border: string; label: string }> = {
   'Başlangıç': { color: 'text-emerald-400', bg: 'bg-emerald-500/15', border: 'border-emerald-500/30', label: '🌱 Başlangıç' },
   'Orta': { color: 'text-yellow-400', bg: 'bg-yellow-500/15', border: 'border-yellow-500/30', label: '⚡️ Orta' },
   'İleri': { color: 'text-red-400', bg: 'bg-red-500/15', border: 'border-red-500/30', label: '🏆 İleri' },
 };
 
+// Haftanın başlangıcını bul (Pazartesi)
+function getWeekStart(date: Date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function formatDate(dateStr: string) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('tr-TR', { day: '2-digit', month: 'long', weekday: 'short' });
+}
+
+function formatWeekLabel(weekStart: Date) {
+  const start = weekStart.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+  const end = new Date(weekStart.getTime() + 6 * 86400000).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+  return `${start} – ${end}`;
+}
+
+// Haftaya göre gruplama
+function groupByWeek(logs: WorkoutLog[]) {
+  const weeks: Record<string, WorkoutLog[]> = {};
+  for (const log of logs) {
+    const ws = getWeekStart(new Date(log.createdAt));
+    const key = ws.toISOString();
+    if (!weeks[key]) weeks[key] = [];
+    weeks[key].push(log);
+  }
+  return Object.entries(weeks)
+    .map(([key, logs]) => ({ weekStart: new Date(key), logs }))
+    .sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime());
+}
+
+// Son 8 haftanın session sayısı (bar chart)
+function getLast8WeeksBars(logs: WorkoutLog[]) {
+  const now = new Date();
+  const bars: { label: string; count: number; minutes: number }[] = [];
+  for (let i = 7; i >= 0; i--) {
+    const ws = getWeekStart(new Date(now.getTime() - i * 7 * 86400000));
+    const we = new Date(ws.getTime() + 7 * 86400000);
+    const weekLogs = logs.filter(l => {
+      const d = new Date(l.createdAt);
+      return d >= ws && d < we;
+    });
+    bars.push({
+      label: ws.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }),
+      count: weekLogs.length,
+      minutes: weekLogs.reduce((s, l) => s + l.durationMinutes, 0),
+    });
+  }
+  return bars;
+}
+
 const weekDays = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
-const today = new Date().getDay(); // 0=Paz, 1=Pzt...
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [allLogs, setAllLogs] = useState<WorkoutLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('home');
+  const [expandedWeek, setExpandedWeek] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const userId = localStorage.getItem('userId');
-        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-        if (!userId || !token) { router.push('/login'); return; }
-        const res = await fetch(`http://127.0.0.1:3001/user/${userId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) setUser(await res.json());
-        else { localStorage.clear(); router.push('/login'); }
-      } catch { /* ignore */ }
-      finally { setLoading(false); }
-    };
-    fetchUser();
+  const fetchData = useCallback(async () => {
+    try {
+      const userId = localStorage.getItem('userId');
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      if (!userId || !token) { router.push('/login'); return; }
+
+      const headers = { Authorization: `Bearer ${token}` };
+      const [userRes, statsRes, logsRes] = await Promise.all([
+        fetch(`http://127.0.0.1:3001/user/${userId}`, { headers }),
+        fetch(`http://127.0.0.1:3001/workout-log/user/${userId}/stats`, { headers }),
+        fetch(`http://127.0.0.1:3001/workout-log/user/${userId}`, { headers }),
+      ]);
+
+      if (userRes.ok) setUser(await userRes.json());
+      else { localStorage.clear(); router.push('/login'); return; }
+      if (statsRes.ok) setStats(await statsRes.json());
+      if (logsRes.ok) setAllLogs(await logsRes.json());
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
   }, [router]);
 
-  const handleLogout = () => { localStorage.clear(); router.push('/login'); };
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   if (loading) return (
     <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center">
@@ -90,253 +149,325 @@ export default function DashboardPage() {
 
   const branch = user?.sportBranch || 'Fitness';
   const cfg = branchConfig[branch] || branchConfig['Fitness'];
-  const lvl = levelConfig[user?.level || 'Başlangıç'] || levelConfig['Başlangıç'];
+  const lvl = levelCfg[user?.level || 'Başlangıç'] || levelCfg['Başlangıç'];
 
-  // VKİ hesabı
   const bmi = user?.weight && user?.height
-    ? (user.weight / Math.pow(user.height / 100, 2)).toFixed(1)
-    : null;
+    ? (user.weight / Math.pow(user.height / 100, 2)).toFixed(1) : null;
   const bmiLabel = bmi
-    ? Number(bmi) < 18.5 ? 'Zayıf'
-      : Number(bmi) < 25 ? 'Normal'
-        : Number(bmi) < 30 ? 'Fazla Kilolu' : 'Obez'
+    ? Number(bmi) < 18.5 ? 'Zayıf' : Number(bmi) < 25 ? 'Normal' : Number(bmi) < 30 ? 'Fazla Kilolu' : 'Obez'
     : null;
 
-  // Haftanın günleri (bugün aktif)
-  const mondayOffset = today === 0 ? -6 : 1 - today; // pazartesiyi bul
+  const today = new Date().getDay();
+  const mondayOffset = today === 0 ? -6 : 1 - today;
   const weekItems = weekDays.map((d, i) => {
-    const dayOffset = mondayOffset + i;
-    const isToday = dayOffset === 0;
-    const isPast = dayOffset < 0;
-    return { label: d, isToday, isPast };
+    const offset = mondayOffset + i;
+    return { label: d, isToday: offset === 0, isPast: offset < 0 };
   });
+
+  const bars = getLast8WeeksBars(allLogs);
+  const maxCount = Math.max(...bars.map(b => b.count), 1);
+  const weeklyGroups = groupByWeek(allLogs);
+
+  // ── Ana Sayfa ──────────────────────────────────────────────────
+  const HomeTab = () => (
+    <div className="space-y-6">
+      {/* Rozetler */}
+      <div className="flex flex-wrap gap-2">
+        <span className={`px-3 py-1 rounded-full text-xs font-bold border ${lvl.bg} ${lvl.color} ${lvl.border}`}>{lvl.label}</span>
+        <span className="px-3 py-1 rounded-full text-xs font-bold border border-white/10 bg-white/5 text-gray-300">{cfg.emoji} {cfg.label}</span>
+        {user?.position && <span className="px-3 py-1 rounded-full text-xs font-bold border border-amber-500/20 bg-amber-500/10 text-amber-400">{user.position}</span>}
+      </div>
+
+      {/* Hero Kart */}
+      <section onClick={() => router.push(cfg.link)} className="relative w-full rounded-3xl overflow-hidden cursor-pointer group" style={{ height: 200 }}>
+        <div className={`absolute inset-0 bg-gradient-to-br ${cfg.gradient}`} />
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+        <div className="relative h-full flex flex-col justify-between p-6">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-white/70 mb-1">Bugünkü Antrenman</p>
+            <h2 className="text-2xl font-black text-white drop-shadow">Sahaya Dön 🏈</h2>
+            <p className="text-white/70 text-sm font-medium mt-1">Pozisyon programın seni bekliyor</p>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex gap-4 text-white/80 text-sm font-medium">
+              <span className="flex items-center gap-1"><Clock size={13} /> {cfg.duration} dk</span>
+              <span className="flex items-center gap-1"><Flame size={13} /> {cfg.kcal} kcal</span>
+            </div>
+            <button onClick={e => { e.stopPropagation(); router.push(cfg.link); }} className="flex items-center gap-1.5 bg-white text-black px-4 py-2 rounded-2xl font-bold text-sm shadow-lg hover:scale-105 transition-transform">
+              <Play size={13} fill="black" /> Başla
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats özet */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-white/5 border border-white/8 rounded-2xl p-4">
+          <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-2">Bu Hafta</p>
+          <p className="text-3xl font-black text-white">{stats?.weeklySessions ?? 0}</p>
+          <p className="text-xs text-gray-500 mt-1">antrenman</p>
+        </div>
+        <div className="bg-white/5 border border-white/8 rounded-2xl p-4">
+          <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-2">Toplam</p>
+          <p className="text-3xl font-black text-white">{stats?.totalSessions ?? 0}</p>
+          <p className="text-xs text-gray-500 mt-1">seans</p>
+        </div>
+        <div className="bg-white/5 border border-white/8 rounded-2xl p-4">
+          <Scale size={14} className="text-blue-400 mb-2" />
+          <p className="text-2xl font-black text-white">{bmi ?? '—'}</p>
+          <p className={`text-xs font-bold mt-1 ${bmiLabel === 'Normal' ? 'text-emerald-400' : 'text-orange-400'}`}>{bmiLabel ?? '—'}</p>
+        </div>
+        <div className="bg-white/5 border border-white/8 rounded-2xl p-4">
+          <Ruler size={14} className="text-emerald-400 mb-2" />
+          <p className="text-xl font-black text-white">{user?.weight ?? '—'} <span className="text-gray-500 text-sm">kg</span></p>
+          <p className="text-xl font-black text-white mt-1">{user?.height ?? '—'} <span className="text-gray-500 text-sm">cm</span></p>
+        </div>
+      </div>
+
+      {/* Haftalık takvim */}
+      <div>
+        <h2 className="text-base font-black text-white mb-3 flex items-center gap-2"><Calendar size={16} className="text-amber-500" /> Bu Hafta</h2>
+        <div className="flex gap-2">
+          {weekItems.map((item, i) => (
+            <div key={i} className={`flex-1 flex flex-col items-center justify-center h-14 rounded-2xl border transition-all ${item.isToday ? `bg-gradient-to-br ${cfg.gradient} border-transparent` : item.isPast ? 'bg-white/5 border-white/5 opacity-50' : 'bg-white/5 border-white/8'}`}>
+              <span className={`text-[10px] font-bold ${item.isToday ? 'text-white' : 'text-gray-500'}`}>{item.label}</span>
+              {item.isPast && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1" />}
+              {item.isToday && <div className="w-1.5 h-1.5 rounded-full bg-white mt-1 animate-pulse" />}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Hızlı erişim */}
+      <div>
+        <h2 className="text-base font-black text-white mb-3">⚡️ Hızlı Erişim</h2>
+        <button onClick={() => router.push(cfg.link)} className="w-full flex items-center gap-4 bg-white/5 hover:bg-white/10 border border-white/8 rounded-2xl px-5 py-4 transition-all">
+          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${cfg.gradient} flex items-center justify-center flex-shrink-0`}>
+            <Play size={16} fill="white" className="text-white" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="font-bold text-white text-sm">{cfg.emoji} {cfg.label} Programı</p>
+            <p className="text-xs text-gray-500 mt-0.5">{user?.position ? user.position + ' · ' : ''}{user?.level} seviye</p>
+          </div>
+          <ChevronRight size={16} className="text-gray-600 flex-shrink-0" />
+        </button>
+      </div>
+    </div>
+  );
+
+  // ── İstatistik Sekmesi ─────────────────────────────────────────
+  const StatsTab = () => (
+    <div className="space-y-6">
+      {/* Özet Stat Kartları */}
+      <div className="grid grid-cols-2 gap-3">
+        {[
+          { icon: <Trophy size={16} className="text-yellow-400" />, label: 'Toplam Seans', value: stats?.totalSessions ?? 0, unit: 'antrenman', color: 'bg-yellow-500/15' },
+          { icon: <Clock size={16} className="text-blue-400" />, label: 'Toplam Süre', value: stats?.totalMinutes ?? 0, unit: 'dakika', color: 'bg-blue-500/15' },
+          { icon: <Dumbbell size={16} className="text-purple-400" />, label: 'Toplam Set', value: stats?.totalSets ?? 0, unit: 'set', color: 'bg-purple-500/15' },
+          { icon: <TrendingUp size={16} className="text-emerald-400" />, label: 'Kaldırılan Ağırlık', value: stats?.totalWeightKg ?? 0, unit: 'kg', color: 'bg-emerald-500/15' },
+        ].map((s, i) => (
+          <div key={i} className={`${s.color} border border-white/8 rounded-2xl p-4`}>
+            <div className="mb-2">{s.icon}</div>
+            <p className="text-2xl font-black text-white">{s.value.toLocaleString('tr-TR')}</p>
+            <p className="text-xs text-gray-500 font-bold mt-0.5">{s.unit}</p>
+            <p className="text-[10px] text-gray-600 mt-1 uppercase tracking-wider">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Bar Chart: Son 8 Hafta */}
+      <div className="bg-white/5 border border-white/8 rounded-2xl p-5">
+        <h3 className="text-sm font-black text-white mb-1">Haftalık Antrenman</h3>
+        <p className="text-xs text-gray-600 mb-5">Son 8 hafta · seans sayısı</p>
+        <div className="flex items-end gap-1.5 h-32">
+          {bars.map((bar, i) => {
+            const isCurrentWeek = i === 7;
+            const heightPct = maxCount > 0 ? (bar.count / maxCount) * 100 : 0;
+            return (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
+                <div className="w-full relative flex items-end justify-center" style={{ height: '96px' }}>
+                  {bar.count > 0 && (
+                    <div
+                      className="absolute bottom-0 w-full rounded-t-lg transition-all duration-500"
+                      style={{
+                        height: `${Math.max(heightPct, 8)}%`,
+                        background: isCurrentWeek
+                          ? `linear-gradient(to top, #f59e0b, #f97316)`
+                          : 'rgba(255,255,255,0.12)',
+                      }}
+                    />
+                  )}
+                  {bar.count === 0 && (
+                    <div className="absolute bottom-0 w-full h-1 rounded-full bg-white/5" />
+                  )}
+                  {bar.count > 0 && (
+                    <span className="absolute -top-5 text-[10px] font-black text-gray-400">{bar.count}</span>
+                  )}
+                </div>
+                <span className={`text-[9px] font-bold text-center leading-tight ${isCurrentWeek ? 'text-amber-400' : 'text-gray-700'}`}>
+                  {bar.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        {allLogs.length === 0 && (
+          <p className="text-center text-gray-600 text-sm mt-4">Henüz antrenman kaydı yok</p>
+        )}
+      </div>
+
+      {/* Hafta Hafta Geçmiş */}
+      <div>
+        <h3 className="text-sm font-black text-white mb-3">📅 Hafta Hafta Geçmiş</h3>
+        {weeklyGroups.length === 0 ? (
+          <div className="bg-white/5 border border-white/8 rounded-2xl p-6 text-center">
+            <p className="text-gray-600 text-sm">Antrenman kaydın bulunmuyor.</p>
+            <p className="text-gray-700 text-xs mt-1">İlk antrenmanını tamamladıktan sonra burada görünecek.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {weeklyGroups.map(({ weekStart, logs: wLogs }) => {
+              const key = weekStart.toISOString();
+              const isOpen = expandedWeek === key;
+              const totalMin = wLogs.reduce((s, l) => s + l.durationMinutes, 0);
+              const totalKg = wLogs.reduce((s, l) => s + (l.totalWeightKg || 0), 0);
+              const isThisWeek = getWeekStart(new Date()).toISOString() === key;
+
+              return (
+                <div key={key} className={`rounded-2xl border overflow-hidden transition-all duration-300 ${isOpen ? 'border-amber-500/30 bg-white/5' : 'border-white/8 bg-white/3'}`}>
+                  <button onClick={() => setExpandedWeek(isOpen ? null : key)} className="w-full p-4 flex items-center gap-3 text-left">
+                    <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-lg ${isThisWeek ? 'bg-amber-500/20' : 'bg-white/5'}`}>
+                      📅
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-white text-sm">{formatWeekLabel(weekStart)}</p>
+                        {isThisWeek && <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">Bu Hafta</span>}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5">{wLogs.length} seans · {totalMin} dk{totalKg > 0 ? ` · ${Math.round(totalKg)} kg` : ''}</p>
+                    </div>
+                    <ChevronDown size={16} className={`text-gray-600 flex-shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {isOpen && (
+                    <div className="border-t border-white/5 px-4 pb-4 pt-3 space-y-3">
+                      {wLogs.map((log) => (
+                        <div key={log.id} className="bg-black/30 rounded-xl p-4 border border-white/5">
+                          <div className="flex items-start justify-between gap-2 mb-3">
+                            <div>
+                              <p className="font-bold text-white text-sm">{log.workoutTitle}</p>
+                              <p className="text-xs text-gray-500 mt-0.5">{formatDate(log.createdAt)}</p>
+                            </div>
+                            <div className="flex gap-2 flex-shrink-0 text-[11px] font-bold">
+                              <span className="px-2 py-0.5 bg-amber-500/15 text-amber-400 rounded-lg">{log.durationMinutes} dk</span>
+                              {log.totalWeightKg && <span className="px-2 py-0.5 bg-blue-500/15 text-blue-400 rounded-lg">{log.totalWeightKg} kg</span>}
+                            </div>
+                          </div>
+
+                          {/* Egzersiz Detayları */}
+                          <div className="space-y-2">
+                            {log.exercises?.filter(e => e.completed).map((ex, ei) => (
+                              <div key={ei} className="flex items-center justify-between text-xs">
+                                <span className="text-gray-400 flex items-center gap-1.5">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
+                                  {ex.name}
+                                </span>
+                                <span className="text-gray-600 font-medium flex-shrink-0 ml-2">
+                                  {ex.sets}×{ex.reps}{ex.weightKg ? ` @${ex.weightKg}kg` : ''}
+                                </span>
+                              </div>
+                            ))}
+                            {log.exercises?.filter(e => !e.completed).length > 0 && (
+                              <p className="text-[11px] text-gray-700 italic mt-1">
+                                {log.exercises.filter(e => !e.completed).length} egzersiz atlandı
+                              </p>
+                            )}
+                          </div>
+
+                          {log.notes && (
+                            <p className="mt-3 text-xs text-gray-600 italic border-t border-white/5 pt-2">"{log.notes}"</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0d0d0d] text-gray-100 font-sans pb-28 overflow-x-hidden">
 
-      {/* ── HEADER ────────────────────────────────── */}
+      {/* Header */}
       <header className="sticky top-0 z-30 bg-[#0d0d0d]/90 backdrop-blur-xl border-b border-white/5 px-5 py-4 flex items-center justify-between">
         <div>
           <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Hoş Geldin</p>
           <h1 className="text-2xl font-black text-white capitalize tracking-tight leading-none mt-0.5">
-            {user?.name || 'Sporcu'} <span className="text-lg">⚡️</span>
+            {user?.name || 'Sporcu'} ⚡️
           </h1>
         </div>
         <div className="flex items-center gap-3">
-          <button className="relative w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-white border border-white/8 transition-colors">
+          <button className="relative w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-gray-400 border border-white/8 transition-colors">
             <Bell size={18} />
             <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-red-500 rounded-full" />
           </button>
-          <button onClick={handleLogout} className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-gray-500 hover:text-red-400 border border-white/8 transition-colors">
+          <button onClick={() => { localStorage.clear(); router.push('/login'); }} className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center text-gray-500 hover:text-red-400 border border-white/8 transition-colors">
             <LogOut size={16} />
           </button>
         </div>
       </header>
 
-      <main className="px-5 pt-5 space-y-6 max-w-2xl mx-auto">
-
-        {/* ── ROZET SATIRI ──────────────────────────── */}
-        <div className="flex flex-wrap gap-2">
-          <span className={`px-3 py-1 rounded-full text-xs font-bold border ${lvl.bg} ${lvl.color} ${lvl.border}`}>
-            {lvl.label}
-          </span>
-          <span className="px-3 py-1 rounded-full text-xs font-bold border border-white/10 bg-white/5 text-gray-300">
-            {cfg.emoji} {cfg.label}
-          </span>
-          {user?.position && (
-            <span className="px-3 py-1 rounded-full text-xs font-bold border border-amber-500/20 bg-amber-500/10 text-amber-400">
-              {user.position}
-            </span>
-          )}
-        </div>
-
-        {/* ── HERO KARTI ─────────────────────────────── */}
-        <section
-          onClick={() => router.push(cfg.link)}
-          className="relative w-full rounded-3xl overflow-hidden cursor-pointer group"
-          style={{ height: '220px' }}
-        >
-          {/* Gradient arka plan */}
-          <div className={`absolute inset-0 bg-gradient-to-br ${cfg.gradient} opacity-90`} />
-          {/* Desen */}
-          <div className="absolute inset-0 opacity-10" style={{
-            backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
-            backgroundSize: '24px 24px'
-          }} />
-          {/* İçerik */}
-          <div className="relative h-full flex flex-col justify-between p-6">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-white/70">{cfg.workoutType}</span>
-              <h2 className="text-3xl font-black text-white mt-1 leading-tight drop-shadow">{cfg.heroTitle}</h2>
-              <p className="text-white/70 text-sm font-medium mt-1">{cfg.heroSub}</p>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex gap-4 text-white/80 text-sm font-medium">
-                <span className="flex items-center gap-1"><Clock size={14} /> {cfg.duration} dk</span>
-                <span className="flex items-center gap-1"><Flame size={14} /> {cfg.kcal} kcal</span>
-              </div>
-              <button
-                onClick={(e) => { e.stopPropagation(); router.push(cfg.link); }}
-                className="flex items-center gap-2 bg-white text-black px-5 py-2.5 rounded-2xl font-bold text-sm shadow-lg hover:scale-105 active:scale-95 transition-transform"
-              >
-                <Play size={14} fill="black" /> Başla
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* ── İSTATİSTİK KARTLARI ─────────────────────── */}
-        <section className="grid grid-cols-2 gap-3">
-          {/* VKİ */}
-          <div className="bg-white/5 border border-white/8 rounded-3xl p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                <Scale size={16} className="text-blue-400" />
-              </div>
-              <span className="text-xs font-bold uppercase tracking-wider text-gray-500">VKİ</span>
-            </div>
-            <p className="text-3xl font-black text-white">{bmi ?? '—'}</p>
-            <p className={`text-xs font-bold mt-1 ${bmiLabel === 'Normal' ? 'text-emerald-400' :
-                bmiLabel === 'Zayıf' ? 'text-blue-400' : 'text-orange-400'
-              }`}>{bmiLabel ?? 'Henüz bilgi yok'}</p>
-          </div>
-
-          {/* Kilo & Boy */}
-          <div className="bg-white/5 border border-white/8 rounded-3xl p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                <Ruler size={16} className="text-emerald-400" />
-              </div>
-              <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Ölçüler</span>
-            </div>
-            <div className="space-y-1">
-              <p className="text-white font-bold">
-                <span className="text-2xl font-black">{user?.weight ?? '—'}</span>
-                <span className="text-gray-500 text-sm ml-1">kg</span>
-              </p>
-              <p className="text-white font-bold">
-                <span className="text-xl font-black">{user?.height ?? '—'}</span>
-                <span className="text-gray-500 text-sm ml-1">cm</span>
-              </p>
-            </div>
-          </div>
-
-          {/* Motivasyon */}
-          <div className="bg-white/5 border border-white/8 rounded-3xl p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-xl bg-yellow-500/20 flex items-center justify-center">
-                <Star size={16} className="text-yellow-400" />
-              </div>
-              <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Hedef</span>
-            </div>
-            <p className="text-white font-bold text-sm leading-snug">{user?.motivation || '—'}</p>
-          </div>
-
-          {/* Yaş */}
-          <div className="bg-white/5 border border-white/8 rounded-3xl p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                <User size={16} className="text-purple-400" />
-              </div>
-              <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Yaş & Cinsiyet</span>
-            </div>
-            <p className="text-3xl font-black text-white">{user?.age ?? '—'}</p>
-            <p className="text-xs font-bold mt-1 text-gray-400">{user?.gender || '—'}</p>
-          </div>
-        </section>
-
-        {/* ── HAFTALIK TAKVİM ──────────────────────────── */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-black text-white flex items-center gap-2">
-              <Calendar size={18} className="text-amber-500" /> Bu Hafta
-            </h2>
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
-            {weekItems.map((item, i) => (
-              <div
-                key={i}
-                className={`flex-shrink-0 flex flex-col items-center justify-center w-12 h-16 rounded-2xl border transition-all ${item.isToday
-                    ? `bg-gradient-to-br ${cfg.gradient} border-transparent shadow-lg`
-                    : item.isPast
-                      ? 'bg-white/5 border-white/5 opacity-50'
-                      : 'bg-white/5 border-white/8'
-                  }`}
-              >
-                <span className={`text-xs font-bold ${item.isToday ? 'text-white' : 'text-gray-500'}`}>{item.label}</span>
-                {item.isPast && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5" />}
-                {item.isToday && <div className="w-1.5 h-1.5 rounded-full bg-white mt-1.5 animate-pulse" />}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── HIZLI ERİŞİM LINKLERI ─────────────────────── */}
-        <section>
-          <h2 className="text-lg font-black text-white mb-4 flex items-center gap-2">
-            <Zap size={18} className="text-amber-500" /> Hızlı Erişim
-          </h2>
-          <div className="space-y-3">
+      {/* Content */}
+      <main className="px-5 pt-5 max-w-2xl mx-auto">
+        {activeTab === 'home' && <HomeTab />}
+        {activeTab === 'stats' && <StatsTab />}
+        {activeTab === 'profile' && (
+          <div className="space-y-4 pt-2">
+            <h2 className="text-xl font-black text-white">Profil</h2>
             {[
-              {
-                title: `${cfg.emoji} ${cfg.label} Programı`,
-                desc: `${user?.position ? user.position + ' · ' : ''}${user?.level || ''} seviye plan`,
-                link: cfg.link,
-                icon: <Play size={18} className="text-white" fill="white" />,
-                grad: cfg.gradient,
-              },
-              {
-                title: '💪 Fitness & Gym',
-                desc: 'Push / Pull / Legs rutini',
-                link: '/gym',
-                icon: <Activity size={18} className="text-violet-400" />,
-                grad: 'from-violet-500 to-purple-700',
-              },
-            ].map((item, i) => (
-              <button
-                key={i}
-                onClick={() => router.push(item.link)}
-                className="w-full flex items-center gap-4 bg-white/5 hover:bg-white/10 border border-white/8 rounded-2xl px-5 py-4 transition-all group text-left"
-              >
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${item.grad} flex items-center justify-center flex-shrink-0`}>
-                  {item.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-white text-sm">{item.title}</p>
-                  <p className="text-xs text-gray-500 mt-0.5 truncate">{item.desc}</p>
-                </div>
-                <ChevronRight size={16} className="text-gray-600 group-hover:text-gray-400 transition-colors flex-shrink-0" />
-              </button>
-            ))}
+              { label: 'Ad', value: user?.name },
+              { label: 'E-posta', value: user?.email },
+              { label: 'Branş', value: user?.sportBranch },
+              { label: 'Pozisyon', value: user?.position },
+              { label: 'Seviye', value: user?.level },
+              { label: 'Yaş', value: user?.age ? `${user.age}` : undefined },
+              { label: 'Kilo', value: user?.weight ? `${user.weight} kg` : undefined },
+              { label: 'Boy', value: user?.height ? `${user.height} cm` : undefined },
+              { label: 'Cinsiyet', value: user?.gender },
+              { label: 'Hedef', value: user?.motivation },
+            ].map((row, i) => row.value ? (
+              <div key={i} className="flex items-center justify-between px-5 py-3.5 bg-white/5 border border-white/8 rounded-2xl">
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{row.label}</span>
+                <span className="text-sm font-bold text-white">{row.value}</span>
+              </div>
+            ) : null)}
           </div>
-        </section>
-
+        )}
       </main>
 
-      {/* ── ALT NAVİGASYON ──────────────────────────── */}
+      {/* Bottom Nav */}
       <nav className="fixed bottom-0 left-0 w-full z-40 bg-[#0d0d0d]/95 backdrop-blur-xl border-t border-white/5">
         <div className="flex items-center justify-around max-w-2xl mx-auto px-6 h-20">
           {[
             { id: 'home', icon: <Home size={22} />, label: 'Ana Sayfa' },
-            { id: 'schedule', icon: <Calendar size={22} />, label: 'Program' },
-            { id: 'play', special: true },
             { id: 'stats', icon: <BarChart2 size={22} />, label: 'İstatistik' },
+            { id: 'play', special: true },
+            { id: 'schedule', icon: <Calendar size={22} />, label: 'Program' },
             { id: 'profile', icon: <User size={22} />, label: 'Profil' },
           ].map((item) =>
             item.special ? (
-              <button
-                key="play"
-                onClick={() => router.push(cfg.link)}
-                className={`-mt-8 w-16 h-16 rounded-full bg-gradient-to-br ${cfg.gradient} flex items-center justify-center shadow-2xl border-4 border-[#0d0d0d] hover:scale-110 active:scale-95 transition-transform`}
-              >
+              <button key="play" onClick={() => router.push(cfg.link)}
+                className={`-mt-8 w-16 h-16 rounded-full bg-gradient-to-br ${cfg.gradient} flex items-center justify-center shadow-2xl border-4 border-[#0d0d0d] hover:scale-110 active:scale-95 transition-transform`}>
                 <Play size={22} fill="white" className="text-white ml-0.5" />
               </button>
             ) : (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id!)}
-                className={`flex flex-col items-center gap-1 transition-colors ${activeTab === item.id ? 'text-white' : 'text-gray-600 hover:text-gray-400'}`}
-              >
+              <button key={item.id} onClick={() => setActiveTab(item.id!)}
+                className={`flex flex-col items-center gap-1 transition-colors ${activeTab === item.id ? 'text-white' : 'text-gray-600 hover:text-gray-400'}`}>
                 {item.icon}
                 <span className="text-[10px] font-bold">{item.label}</span>
               </button>
