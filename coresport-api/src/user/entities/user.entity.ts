@@ -35,10 +35,13 @@ export class User {
   motivation: string; // YENİ: Motivasyon Kaynağı (Örn: "Kas yapmak")
 
   @Column({ nullable: true })
-  gender: string; // YENİ: Cinsiyet (Örn: "Erkek", "Kadın")
+  gender: string;
 
   @Column({ nullable: true })
-  level: string; // YENİ: Seviye (Örn: "Başlangıç", "Orta", "İleri")
+  position: string; // YENİ: Mevki (Örn: "Quarterback", "Point Guard")
+
+  @Column({ nullable: true })
+  level: string;
 
   @Column('int', { nullable: true })
   age: number; // YENİ: Yaş

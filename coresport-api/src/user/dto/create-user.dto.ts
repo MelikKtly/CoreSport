@@ -38,6 +38,10 @@ export class CreateUserDto {
 
   @IsOptional()
   @IsString()
+  position?: string;
+
+  @IsOptional()
+  @IsString()
   level?: string;
 
   @IsOptional()

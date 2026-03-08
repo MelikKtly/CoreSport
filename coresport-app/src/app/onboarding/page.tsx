@@ -33,11 +33,12 @@ interface Stats {
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState<number>(1);
-  const totalSteps = 4;
+  const totalSteps = 5;
   const [isSaving, setIsSaving] = useState(false);
 
   // State: Seçilen veriler
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats>({
@@ -198,11 +199,22 @@ export default function OnboardingPage() {
       };
       const genderName = stats.gender === 'male' ? 'Erkek' : 'Kadın';
 
+      const positionNames: Record<string, string> = {
+        QB: 'Quarterback', RB: 'Running Back', WR: 'Wide Receiver', TE: 'Tight End',
+        OL: 'Offensive Line', DL: 'Defensive Line', LB: 'Linebacker', CB: 'Cornerback',
+        S: 'Safety', PG: 'Point Guard', SG: 'Shooting Guard', SF: 'Small Forward',
+        PF: 'Power Forward', C: 'Center', freestyle: 'Freestyle', halfpipe: 'Half-Pipe',
+        slopestyle: 'Slopestyle', alpine: 'Alpine', bigair: 'Big Air',
+        bodybuilding: 'Vücut Geliştirme', powerlifting: 'Powerlifting',
+        crossfit: 'CrossFit', functional: 'Fonksiyonel', cardio: 'Kondisyon',
+      };
+
       const bodyData = {
         sportBranch,
         interests: mappedInterests,
         motivation,
         gender: genderName,
+        position: positionNames[selectedPosition || ''] || selectedPosition || 'Genel',
         level: levelNameMap[selectedLevel || ''] || 'Başlangıç',
         age: stats.age,
         weight: stats.weight,
@@ -283,7 +295,79 @@ export default function OnboardingPage() {
     </>
   );
 
+  // Mevki verileri (branşa göre dinamik)
+  const positionsByBranch: Record<string, { id: string; name: string; desc: string; icon: string }[]> = {
+    american_football: [
+      { id: 'QB', name: 'Quarterback', desc: 'Takımın beyni, pas oyununun yıldızı.', icon: '🏈' },
+      { id: 'RB', name: 'Running Back', desc: 'Sahadan yol açan güç merkezi.', icon: '💨' },
+      { id: 'WR', name: 'Wide Receiver', desc: 'Hızla savunmayı geçen alıcı.', icon: '⚡️' },
+      { id: 'TE', name: 'Tight End', desc: 'Hem blok hem alıcı rolünde evrensel oyuncu.', icon: '🔄' },
+      { id: 'OL', name: 'Offensive Line', desc: 'Takımın kalkanı, gücün temeli.', icon: '🛡️' },
+      { id: 'DL', name: 'Defensive Line', desc: 'Hücuma baskı kuran savunma duvarı.', icon: '🧱' },
+      { id: 'LB', name: 'Linebacker', desc: 'Sahayı okuyup reaksiyon veren savunma lideri.', icon: '👁️' },
+      { id: 'CB', name: 'Cornerback', desc: 'Wide Receiver hızını kapatan uzman.', icon: '🔒' },
+      { id: 'S', name: 'Safety', desc: 'Son savunma hattı, saha kontrolcüsü.', icon: '🏹' },
+    ],
+    basketball: [
+      { id: 'PG', name: 'Point Guard', desc: 'Oyunu organize eden, asist kralı.', icon: '🎯' },
+      { id: 'SG', name: 'Shooting Guard', desc: 'Üç sayı uzmanı, skorer.', icon: '🏀' },
+      { id: 'SF', name: 'Small Forward', desc: 'Çok yönlü oyuncu, iki sahada etki.', icon: '🌟' },
+      { id: 'PF', name: 'Power Forward', desc: 'Potada güç, ribaund makinesi.', icon: '💪' },
+      { id: 'C', name: 'Center', desc: 'Boyuyla hükmeden pivot oyuncusu.', icon: '🏛️' },
+    ],
+    snowboard: [
+      { id: 'freestyle', name: 'Freestyle', desc: 'Hava hareketleri ve yaratıcı stil.', icon: '🌀' },
+      { id: 'halfpipe', name: 'Half-Pipe', desc: 'Yarım boru üzerinde akrobatik performans.', icon: '🎪' },
+      { id: 'slopestyle', name: 'Slopestyle', desc: 'Obstacle ve rampa kombinasyonu.', icon: '🏔️' },
+      { id: 'alpine', name: 'Alpine', desc: 'Hız ve teknik viraj odaklı iniş.', icon: '⛷️' },
+      { id: 'bigair', name: 'Big Air', desc: 'Tek büyük rampadan maksimum hava.', icon: '🚀' },
+    ],
+    gym: [
+      { id: 'bodybuilding', name: 'Vücut Geliştirme', desc: 'Estetik kas kütlesi ve simetri.', icon: '💪' },
+      { id: 'powerlifting', name: 'Powerlifting', desc: 'Maksimum güç: squat, bench, deadlift.', icon: '🏋️' },
+      { id: 'crossfit', name: 'CrossFit', desc: 'Fonksiyonel ve yoğun çapraz antrenman.', icon: '🔥' },
+      { id: 'functional', name: 'Fonksiyonel', desc: 'Günlük hareketleri güçlendirme.', icon: '⚙️' },
+      { id: 'cardio', name: 'Kondisyon', desc: 'Dayanıklılık ve kardiovasküler sağlık.', icon: '❤️' },
+    ],
+  };
+
+  const currentPositions = positionsByBranch[selectedInterests[0]] || positionsByBranch['gym'];
+
   const renderStep2 = () => (
+    <>
+      <div className="mt-4 mb-6 animate-in slide-in-from-right duration-500">
+        <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tighter">
+          Mevkini <span className="text-blue-600">Seç</span>
+        </h1>
+        <p className="text-gray-500 font-medium text-lg">Sahada hangi rolde oynuyorsun?</p>
+      </div>
+      <div className="space-y-3 flex-1 overflow-y-auto pb-4 custom-scrollbar animate-in slide-in-from-bottom duration-700 delay-100">
+        {currentPositions.map((pos) => {
+          const isSelected = selectedPosition === pos.id;
+          return (
+            <button
+              key={pos.id}
+              onClick={() => setSelectedPosition(pos.id)}
+              className={`w-full p-4 rounded-2xl border-2 flex items-center transition-all duration-300 text-left group ${isSelected ? 'border-blue-600 bg-blue-50 shadow-lg ring-1 ring-blue-600' : 'border-gray-100 bg-white hover:border-blue-200 hover:shadow-md'
+                }`}
+            >
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 text-xl flex-shrink-0 transition-colors duration-300 ${isSelected ? 'bg-blue-600 shadow-md' : 'bg-gray-100 group-hover:bg-blue-50'
+                }`}>
+                {pos.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className={`font-bold text-lg ${isSelected ? 'text-blue-700' : 'text-gray-800'}`}>{pos.name}</div>
+                <div className="text-xs text-gray-500 font-medium mt-0.5 truncate">{pos.desc}</div>
+              </div>
+              {isSelected && <Check size={20} className="text-blue-600 ml-2 animate-in zoom-in flex-shrink-0" strokeWidth={3} />}
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+
+  const renderStep3 = () => (
     <>
       <div className="mt-4 mb-6 animate-in slide-in-from-right duration-500">
         <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tighter">
@@ -296,25 +380,15 @@ export default function OnboardingPage() {
           <button
             key={goal.id}
             onClick={() => setSelectedGoal(goal.id)}
-            className={`
-              w-full p-4 rounded-2xl border-2 flex items-center transition-all duration-300 text-left group relative
-              ${selectedGoal === goal.id
-                ? 'border-blue-600 bg-blue-50 shadow-lg ring-1 ring-blue-600'
-                : 'border-gray-100 bg-white hover:border-blue-200 hover:shadow-md'}
-            `}
+            className={`w-full p-4 rounded-2xl border-2 flex items-center transition-all duration-300 text-left group relative ${selectedGoal === goal.id ? 'border-blue-600 bg-blue-50 shadow-lg ring-1 ring-blue-600' : 'border-gray-100 bg-white hover:border-blue-200 hover:shadow-md'
+              }`}
           >
-            <div className={`
-              w-12 h-12 rounded-xl flex items-center justify-center mr-4 transition-colors duration-300
-              ${selectedGoal === goal.id
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-500 group-hover:text-blue-600 group-hover:bg-blue-100'}
-            `}>
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 transition-colors duration-300 ${selectedGoal === goal.id ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-500 group-hover:text-blue-600 group-hover:bg-blue-100'
+              }`}>
               {goal.icon}
             </div>
             <div className="flex-1">
-              <div className={`font-bold text-lg ${selectedGoal === goal.id ? 'text-gray-900' : 'text-gray-700'}`}>
-                {goal.title}
-              </div>
+              <div className={`font-bold text-lg ${selectedGoal === goal.id ? 'text-gray-900' : 'text-gray-700'}`}>{goal.title}</div>
               <div className="text-xs text-gray-500 font-medium mt-0.5">{goal.desc}</div>
             </div>
             {selectedGoal === goal.id && (
@@ -326,8 +400,45 @@ export default function OnboardingPage() {
     </>
   );
 
-  // --- ADIM 3: FİZİKSEL BİLGİLER (eskiden step 3, şimdi 4) ---
+  // --- Seviye seçimi renderStep4 oldu ---
   const renderStep4 = () => (
+    <>
+      <div className="mt-4 mb-6 animate-in slide-in-from-right duration-500">
+        <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tighter">
+          Seviyeni <span className="text-blue-600">Belirle</span>
+        </h1>
+        <p className="text-gray-500 font-medium text-lg">
+          {currentPositions.find(p => p.id === selectedPosition)?.name || 'Seçtiğin brans'}ta ne kadar deneyimlisin?
+        </p>
+      </div>
+      <div className="space-y-4 flex-1 animate-in slide-in-from-bottom duration-700 delay-100">
+        {levels.map((lvl) => {
+          const isSelected = selectedLevel === lvl.id;
+          return (
+            <button
+              key={lvl.id}
+              onClick={() => setSelectedLevel(lvl.id)}
+              className={`w-full p-5 rounded-3xl border-2 flex items-center text-left transition-all duration-300 group ${isSelected ? 'border-blue-600 bg-blue-50 shadow-lg ring-1 ring-blue-600' : 'border-gray-100 bg-white hover:border-blue-200 hover:shadow-md'
+                }`}
+            >
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mr-4 text-2xl flex-shrink-0 transition-all duration-300 ${isSelected ? 'bg-blue-600 shadow-md' : 'bg-gray-100 group-hover:bg-blue-50'
+                }`}>
+                {lvl.emoji}
+              </div>
+              <div className="flex-1">
+                <div className={`font-bold text-xl ${isSelected ? 'text-blue-700' : 'text-gray-800'}`}>{lvl.name}</div>
+                <div className="text-sm text-gray-500 mt-0.5 font-medium">{lvl.desc}</div>
+              </div>
+              {isSelected && <Check size={22} className="text-blue-600 ml-3 animate-in zoom-in" strokeWidth={3} />}
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+
+  // --- Fiziksel Bilgiler (Step 5) ---
+  const renderStep5 = () => (
     <>
       <div className="mt-4 mb-6 animate-in slide-in-from-right duration-500">
         <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tighter">
@@ -388,56 +499,6 @@ export default function OnboardingPage() {
     },
   ];
 
-  const renderStep3 = () => (
-    <>
-      <div className="mt-4 mb-6 animate-in slide-in-from-right duration-500">
-        <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tighter">
-          Seviyeni <span className="text-blue-600">Belirle</span>
-        </h1>
-        <p className="text-gray-500 font-medium text-lg">
-          {selectedInterests.length > 0
-            ? `${['american_football', 'snowboard', 'basketball', 'gym'].includes(selectedInterests[0])
-              ? { american_football: 'Amerikan Futbolu', snowboard: 'Snowboard', basketball: 'Basketbol', gym: 'Fitness' }[selectedInterests[0]]
-              : 'Seçtiğin branşta'} ne kadar deneyimlisin?`
-            : 'Seçtiğin branşta ne kadar deneyimlisin?'}
-        </p>
-      </div>
-
-      <div className="space-y-4 flex-1 animate-in slide-in-from-bottom duration-700 delay-100">
-        {levels.map((lvl) => {
-          const isSelected = selectedLevel === lvl.id;
-          return (
-            <button
-              key={lvl.id}
-              onClick={() => setSelectedLevel(lvl.id)}
-              className={`
-                w-full p-5 rounded-3xl border-2 flex items-center text-left transition-all duration-300 group
-                ${isSelected
-                  ? 'border-blue-600 bg-blue-50 shadow-lg ring-1 ring-blue-600'
-                  : 'border-gray-100 bg-white hover:border-blue-200 hover:shadow-md'}
-              `}
-            >
-              <div className={`
-                w-14 h-14 rounded-2xl flex items-center justify-center mr-4 text-2xl flex-shrink-0 transition-all duration-300
-                ${isSelected ? 'bg-blue-600 shadow-md' : 'bg-gray-100 group-hover:bg-blue-50'}
-              `}>
-                {lvl.emoji}
-              </div>
-              <div className="flex-1">
-                <div className={`font-bold text-xl ${isSelected ? 'text-blue-700' : 'text-gray-800'}`}>
-                  {lvl.name}
-                </div>
-                <div className="text-sm text-gray-500 mt-0.5 font-medium">{lvl.desc}</div>
-              </div>
-              {isSelected && (
-                <Check size={22} className="text-blue-600 ml-3 animate-in zoom-in" strokeWidth={3} />
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </>
-  );
 
   // --- Tamamlandı Ekranı ---
   if (step > totalSteps) {
@@ -475,14 +536,15 @@ export default function OnboardingPage() {
         {step === 2 && renderStep2()}
         {step === 3 && renderStep3()}
         {step === 4 && renderStep4()}
+        {step === 5 && renderStep5()}
       </div>
 
       <div className="sticky bottom-0 z-20 w-full bg-white/90 backdrop-blur-md border-t border-gray-100 p-6 pb-8">
         <div className="max-w-md mx-auto">
           <button
             onClick={handleNext}
-            disabled={(step === 1 && selectedInterests.length === 0) || (step === 2 && !selectedGoal) || (step === 3 && !selectedLevel) || isSaving}
-            className={`w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center transition-all duration-300 shadow-xl ${((step === 1 && selectedInterests.length > 0) || (step === 2 && selectedGoal) || (step === 3 && selectedLevel) || step === 4) && !isSaving ? 'bg-black text-white hover:bg-gray-900 hover:-translate-y-0.5 active:scale-95' : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'}`}
+            disabled={(step === 1 && selectedInterests.length === 0) || (step === 2 && !selectedPosition) || (step === 3 && !selectedGoal) || (step === 4 && !selectedLevel) || isSaving}
+            className={`w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center transition-all duration-300 shadow-xl ${((step === 1 && selectedInterests.length > 0) || (step === 2 && selectedPosition) || (step === 3 && selectedGoal) || (step === 4 && selectedLevel) || step === 5) && !isSaving ? 'bg-black text-white hover:bg-gray-900 hover:-translate-y-0.5 active:scale-95' : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'}`}
           >
             {isSaving ? <Loader2 className="animate-spin" size={24} /> : <>{step === totalSteps ? 'Planı Oluştur' : 'Devam Et'} <ArrowRight className="ml-2" size={20} /></>}
           </button>
