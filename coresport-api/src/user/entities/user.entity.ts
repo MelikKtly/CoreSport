@@ -9,7 +9,7 @@ import {
 
 @Entity('users')
 export class User {
-  
+
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -28,11 +28,17 @@ export class User {
   @Column({ nullable: true })
   sportBranch: string; // Seçtiği Branş
 
-  @Column('simple-array', { nullable: true }) 
+  @Column('simple-array', { nullable: true })
   interests: string[]; // YENİ: İlgi Alanları (Örn: ["Yoga", "Kardiyo"])
 
   @Column({ nullable: true })
   motivation: string; // YENİ: Motivasyon Kaynağı (Örn: "Kas yapmak")
+
+  @Column({ nullable: true })
+  gender: string; // YENİ: Cinsiyet (Örn: "Erkek", "Kadın")
+
+  @Column({ nullable: true })
+  level: string; // YENİ: Seviye (Örn: "Başlangıç", "Orta", "İleri")
 
   @Column('int', { nullable: true })
   age: number; // YENİ: Yaş

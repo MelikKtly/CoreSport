@@ -1,6 +1,6 @@
 // coresport-api/src/user/dto/create-user.dto.ts
 
-import { IsEmail, IsNotEmpty, MinLength, IsString, IsOptional, IsNumber } from 'class-validator';
+import { IsEmail, IsNotEmpty, MinLength, IsString, IsOptional, IsNumber, IsArray } from 'class-validator';
 
 export class CreateUserDto {
 
@@ -14,15 +14,35 @@ export class CreateUserDto {
   password: string;
 
   @IsString()
-  @IsNotEmpty()
-  name: string;
+  @IsOptional()
+  name?: string;
 
-  // --- Yeni Eklenen Alanlar (İsteğe Bağlı) ---
-  // Kayıt sırasında gönderilirse kaydedilir, gönderilmezse sorun olmaz.
+  // --- Profil ve Fiziksel Bilgiler ---
 
   @IsOptional()
   @IsString()
   sportBranch?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  interests?: string[];
+
+  @IsOptional()
+  @IsString()
+  motivation?: string;
+
+  @IsOptional()
+  @IsString()
+  gender?: string;
+
+  @IsOptional()
+  @IsString()
+  level?: string;
+
+  @IsOptional()
+  @IsNumber()
+  age?: number;
 
   @IsOptional()
   @IsNumber()

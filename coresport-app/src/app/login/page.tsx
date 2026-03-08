@@ -18,8 +18,8 @@ export default function LoginPage() {
     try {
       const base64Url = token.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
       }).join(''));
       return JSON.parse(jsonPayload);
     } catch (e) {
@@ -47,10 +47,11 @@ export default function LoginPage() {
       }
 
       // --- KRİTİK DÜZELTME BAŞLANGICI ---
-      
-      // 1. Token'ı 'accessToken' adıyla kaydet (Onboarding sayfası bunu arıyor)
+
+      // 1. Token'ı hem 'token' hem 'accessToken' olarak kaydet (tüm sayfalarla uyumluluk için)
       localStorage.setItem('token', data.access_token);
-      
+      localStorage.setItem('accessToken', data.access_token);
+
       // 2. Token içinden UserID'yi al ve kaydet
       const decodedToken = parseJwt(data.access_token);
       if (decodedToken && decodedToken.sub) {
@@ -59,17 +60,17 @@ export default function LoginPage() {
       } else {
         // Yedek plan: Eğer token parse edilemezse backend yanıtındaki user objesine bak
         if (data.user && data.user.id) {
-             localStorage.setItem('userId', data.user.id);
+          localStorage.setItem('userId', data.user.id);
         } else {
-             throw new Error("Token geçersiz, kullanıcı kimliği alınamadı.");
+          throw new Error("Token geçersiz, kullanıcı kimliği alınamadı.");
         }
       }
 
       // 3. Onboarding sayfasına yönlendir
       router.push('/onboarding');
-      
+
       // --- KRİTİK DÜZELTME BİTİŞİ ---
-      
+
     } catch (err: any) {
       console.error("Login Hatası:", err);
       setError(err.message || 'Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.');
@@ -80,13 +81,13 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center relative p-4 overflow-hidden">
-      
+
       {/* Hareketli Arka Plan */}
       <AnimatedBackground />
-      
+
       {/* Glassmorphism Kart */}
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-lg shadow-2xl animate-fade-in-up relative z-10">
-        
+
         <div className="text-center mb-8">
           <h2 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
             Tekrar Hoş Geldin
@@ -95,9 +96,9 @@ export default function LoginPage() {
             Kaldığın yerden devam etmeye hazır mısın?
           </p>
         </div>
-        
+
         <form className="space-y-6" onSubmit={handleSubmit}>
-          
+
           {/* E-posta */}
           <div className="group">
             <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1 transition-colors group-focus-within:text-blue-400">
@@ -148,9 +149,9 @@ export default function LoginPage() {
 
           {/* Alt Linkler */}
           <div className="text-center text-sm text-gray-400 mt-4 flex justify-between items-center">
-             <Link href="#" className="hover:text-blue-400 transition-colors">
-                 Şifremi Unuttum
-             </Link>
+            <Link href="#" className="hover:text-blue-400 transition-colors">
+              Şifremi Unuttum
+            </Link>
             <Link href="/register" className="font-semibold text-blue-400 hover:text-blue-300 transition-colors hover:underline">
               Hesap Oluştur
             </Link>
