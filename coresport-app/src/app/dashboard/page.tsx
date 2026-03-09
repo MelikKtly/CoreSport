@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import {
   Play, Flame, Clock, Home, BarChart2,
   User, Bell, ChevronRight, Loader2, LogOut,
-  Scale, Ruler, Calendar, Star, TrendingUp,
-  ChevronDown, Dumbbell, Trophy
+  Scale, Ruler, Calendar, TrendingUp,
+  ChevronDown, Dumbbell, Trophy, Pencil, Check, X
 } from 'lucide-react';
 
 interface UserData {
@@ -118,6 +118,13 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState('home');
   const [expandedWeek, setExpandedWeek] = useState<string | null>(null);
 
+  // --- DÜZENLEME MODU ---
+  const [editMode, setEditMode] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    weight: '', height: '', age: '', level: '', position: '', motivation: '', gender: '',
+  });
+
   const fetchData = useCallback(async () => {
     try {
       const userId = localStorage.getItem('userId');
@@ -131,13 +138,48 @@ export default function DashboardPage() {
         fetch(`http://127.0.0.1:3001/workout-log/user/${userId}`, { headers }),
       ]);
 
-      if (userRes.ok) setUser(await userRes.json());
-      else { localStorage.clear(); router.push('/login'); return; }
+      if (userRes.ok) {
+        const u = await userRes.json();
+        setUser(u);
+        setEditForm({
+          weight: u.weight ? String(u.weight) : '',
+          height: u.height ? String(u.height) : '',
+          age: u.age ? String(u.age) : '',
+          level: u.level || '',
+          position: u.position || '',
+          motivation: u.motivation || '',
+          gender: u.gender || '',
+        });
+      } else { localStorage.clear(); router.push('/login'); return; }
       if (statsRes.ok) setStats(await statsRes.json());
       if (logsRes.ok) setAllLogs(await logsRes.json());
     } catch { /* ignore */ }
     finally { setLoading(false); }
   }, [router]);
+
+  const handleSaveProfile = async () => {
+    setEditSaving(true);
+    try {
+      const userId = localStorage.getItem('userId');
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      await fetch(`http://127.0.0.1:3001/user/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          weight: editForm.weight ? parseFloat(editForm.weight) : undefined,
+          height: editForm.height ? parseFloat(editForm.height) : undefined,
+          age: editForm.age ? parseInt(editForm.age) : undefined,
+          level: editForm.level || undefined,
+          position: editForm.position || undefined,
+          motivation: editForm.motivation || undefined,
+          gender: editForm.gender || undefined,
+        }),
+      });
+      setEditMode(false);
+      await fetchData(); // Güncel veriyi çek
+    } catch { /* ignore */ }
+    finally { setEditSaving(false); }
+  };
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -427,25 +469,151 @@ export default function DashboardPage() {
         {activeTab === 'home' && <HomeTab />}
         {activeTab === 'stats' && <StatsTab />}
         {activeTab === 'profile' && (
-          <div className="space-y-4 pt-2">
-            <h2 className="text-xl font-black text-white">Profil</h2>
+          <div className="space-y-4 pt-2 pb-4">
+            {/* Başlık + Düzenle butonu */}
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-black text-white">Profil</h2>
+              {!editMode ? (
+                <button
+                  onClick={() => setEditMode(true)}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-amber-500/15 border border-amber-500/30 text-amber-400 rounded-2xl text-sm font-bold hover:bg-amber-500/25 transition-colors"
+                >
+                  <Pencil size={14} /> Düzenle
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setEditMode(false); }}
+                    className="flex items-center gap-1 px-3 py-2 bg-white/5 border border-white/10 text-gray-400 rounded-2xl text-sm font-bold"
+                  >
+                    <X size={14} /> İptal
+                  </button>
+                  <button
+                    onClick={handleSaveProfile}
+                    disabled={editSaving}
+                    className="flex items-center gap-1 px-4 py-2 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-2xl text-sm font-bold hover:bg-emerald-500/30 transition-colors"
+                  >
+                    {editSaving ? <Loader2 size={14} className="animate-spin" /> : <><Check size={14} /> Kaydet</>}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Salt Okunur Alanlar (düzenlenemiyor) */}
             {[
               { label: 'Ad', value: user?.name },
               { label: 'E-posta', value: user?.email },
               { label: 'Branş', value: user?.sportBranch },
-              { label: 'Pozisyon', value: user?.position },
-              { label: 'Seviye', value: user?.level },
-              { label: 'Yaş', value: user?.age ? `${user.age}` : undefined },
-              { label: 'Kilo', value: user?.weight ? `${user.weight} kg` : undefined },
-              { label: 'Boy', value: user?.height ? `${user.height} cm` : undefined },
-              { label: 'Cinsiyet', value: user?.gender },
-              { label: 'Hedef', value: user?.motivation },
             ].map((row, i) => row.value ? (
-              <div key={i} className="flex items-center justify-between px-5 py-3.5 bg-white/5 border border-white/8 rounded-2xl">
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{row.label}</span>
-                <span className="text-sm font-bold text-white">{row.value}</span>
+              <div key={i} className="flex items-center justify-between px-5 py-3.5 bg-white/3 border border-white/5 rounded-2xl opacity-70">
+                <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">{row.label}</span>
+                <span className="text-sm font-bold text-gray-400">{row.value}</span>
               </div>
             ) : null)}
+
+            {/* Düzenlenebilir Alanlar */}
+            <div className="space-y-3">
+              {/* Cinsiyet */}
+              <div className="px-5 py-4 bg-white/5 border border-white/8 rounded-2xl">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Cinsiyet</p>
+                {editMode ? (
+                  <div className="flex gap-2">
+                    {['Kadın', 'Erkek'].map(g => (
+                      <button key={g} onClick={() => setEditForm(f => ({ ...f, gender: g }))}
+                        className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${editForm.gender === g ? 'bg-amber-500 text-black' : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                          }`}>{g}</button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm font-bold text-white">{user?.gender || '—'}</p>
+                )}
+              </div>
+
+              {/* Seviye */}
+              <div className="px-5 py-4 bg-white/5 border border-white/8 rounded-2xl">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Seviye</p>
+                {editMode ? (
+                  <div className="flex gap-2">
+                    {['Başlangıç', 'Orta', 'İleri'].map(l => (
+                      <button key={l} onClick={() => setEditForm(f => ({ ...f, level: l }))}
+                        className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${editForm.level === l
+                            ? 'bg-amber-500 text-black'
+                            : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                          }`}>{l}</button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm font-bold text-white">{user?.level || '—'}</p>
+                )}
+              </div>
+
+              {/* Pozisyon */}
+              <div className="px-5 py-4 bg-white/5 border border-white/8 rounded-2xl">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Pozisyon / Disiplin</p>
+                {editMode ? (
+                  <input
+                    value={editForm.position}
+                    onChange={e => setEditForm(f => ({ ...f, position: e.target.value }))}
+                    placeholder="Örn: Quarterback, Point Guard..."
+                    className="w-full bg-white/5 text-white placeholder-gray-600 text-sm font-bold px-4 py-3 rounded-xl border border-white/10 focus:outline-none focus:border-amber-500/50"
+                  />
+                ) : (
+                  <p className="text-sm font-bold text-white">{user?.position || '—'}</p>
+                )}
+              </div>
+
+              {/* Sayısal Alanlar */}
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { key: 'weight', label: 'Kilo', unit: 'kg', min: 30, max: 250 },
+                  { key: 'height', label: 'Boy', unit: 'cm', min: 100, max: 250 },
+                  { key: 'age', label: 'Yaş', unit: '', min: 10, max: 100 },
+                ].map(field => (
+                  <div key={field.key} className="px-4 py-4 bg-white/5 border border-white/8 rounded-2xl text-center">
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">{field.label}</p>
+                    {editMode ? (
+                      <input
+                        type="number"
+                        value={editForm[field.key as keyof typeof editForm]}
+                        onChange={e => setEditForm(f => ({ ...f, [field.key]: e.target.value }))}
+                        min={field.min} max={field.max}
+                        className="w-full text-center bg-transparent text-white font-black text-xl focus:outline-none"
+                      />
+                    ) : (
+                      <p className="text-xl font-black text-white">
+                        {user?.[field.key as keyof UserData] ?? '—'}
+                      </p>
+                    )}
+                    {field.unit && <p className="text-xs text-gray-600 mt-0.5">{field.unit}</p>}
+                  </div>
+                ))}
+              </div>
+
+              {/* Hedef / Motivasyon */}
+              <div className="px-5 py-4 bg-white/5 border border-white/8 rounded-2xl">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Hedef</p>
+                {editMode ? (
+                  <textarea
+                    value={editForm.motivation}
+                    onChange={e => setEditForm(f => ({ ...f, motivation: e.target.value }))}
+                    placeholder="Spordan hedefin nedir?"
+                    className="w-full bg-transparent text-white text-sm font-bold resize-none focus:outline-none placeholder-gray-600 min-h-[48px]"
+                  />
+                ) : (
+                  <p className="text-sm font-bold text-white">{user?.motivation || '—'}</p>
+                )}
+              </div>
+            </div>
+
+            {editMode && (
+              <button
+                onClick={handleSaveProfile}
+                disabled={editSaving}
+                className="w-full py-4 rounded-2xl font-black text-base bg-gradient-to-r from-amber-500 to-orange-600 text-white flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all"
+              >
+                {editSaving ? <Loader2 size={20} className="animate-spin" /> : <><Check size={18} /> Profili Kaydet</>}
+              </button>
+            )}
           </div>
         )}
       </main>
