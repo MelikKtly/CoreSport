@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, LogOut, User as UserIcon, Loader2, ChevronRight, Flame, Timer, TrendingUp, Shield, Zap, Target, Star, Activity, Play } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { WorkoutTracker } from '@/components/WorkoutTracker';
+import { AF_PROGRAMS } from '@/data/af-programs';
 
 const API_URL = 'http://127.0.0.1:3001';
 
@@ -412,24 +413,12 @@ const ALL_PROGRAMS = buildProgram({
 // Pozisyon isim normalizasyonu
 function normalizePosition(pos: string): string {
     const map: Record<string, string> = {
-        'Quarterback': 'QB',
-        'Running Back': 'RB',
-        'Wide Receiver': 'WR',
-        'Tight End': 'TE',
-        'Offensive Line': 'OL',
-        'Defensive Line': 'DL',
-        'Linebacker': 'LB',
-        'Cornerback': 'CB',
-        'S': 'Safety',
+        'Quarterback': 'QB', 'Running Back': 'RB', 'Wide Receiver': 'WR',
+        'Tight End': 'TE', 'Offensive Line': 'OL', 'Defensive Line': 'DL',
+        'Linebacker': 'LB', 'Cornerback': 'CB', 'S': 'Safety',
     };
     return map[pos] || pos;
 }
-
-const intensityByLevel: Record<string, { sets: string; intensityLabel: string; repNote: string }> = {
-    'Başlangıç': { sets: '3', intensityLabel: 'Düşük-Orta', repNote: 'Teknik öncelikli, %60-70 yoğunluk' },
-    'Orta': { sets: '4', intensityLabel: 'Orta-Yüksek', repNote: 'Performans odaklı, %75-82 yoğunluk' },
-    'İleri': { sets: '5', intensityLabel: 'Maksimum', repNote: 'Elit yük, %85-95 yoğunluk' },
-};
 
 export default function AmericanFootballPage() {
     const router = useRouter();
@@ -473,10 +462,17 @@ export default function AmericanFootballPage() {
         </div>
     );
 
-    const level = (user?.level || 'Başlangıç') as Level;
+    const level = (user?.level || 'Başlangıç') as 'Başlangıç' | 'Orta' | 'İleri';
     const posKey = normalizePosition(user?.position || 'QB');
-    const program = ALL_PROGRAMS[posKey] || ALL_PROGRAMS['QB'];
+    const posData = AF_PROGRAMS[posKey] || AF_PROGRAMS['QB'];
+    const levelProgram = posData.programs[level] || posData.programs['Başlangıç'];
+    const weeklyPlan = levelProgram.weeklyPlan;
     const lvlMod = levelMod[level] || levelMod['Başlangıç'];
+    const intensityByLevel: Record<string, { sets: string; intensityLabel: string; repNote: string }> = {
+        'Başlangıç': { sets: '3', intensityLabel: 'Düşük-Orta', repNote: 'Teknik öncelikli, %60-70 yoğunluk' },
+        'Orta': { sets: '4', intensityLabel: 'Orta-Yüksek', repNote: 'Performans odaklı, %75-82 yoğunluk' },
+        'İleri': { sets: '5', intensityLabel: 'Maksimum', repNote: 'Elit yük, %85-95 yoğunluk' },
+    };
     const intensity = intensityByLevel[level] || intensityByLevel['Başlangıç'];
 
     return (
@@ -511,7 +507,7 @@ export default function AmericanFootballPage() {
             {/* HERO */}
             <header className="relative pt-24 pb-12 px-4 overflow-hidden">
                 <div className="absolute inset-0 pointer-events-none">
-                    <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-br ${program.color} opacity-10 blur-[120px] rounded-full`} />
+                    <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-br ${posData.color} opacity-10 blur-[120px] rounded-full`} />
                 </div>
 
                 <div className="relative max-w-4xl mx-auto">
@@ -521,21 +517,21 @@ export default function AmericanFootballPage() {
                             {lvlMod.label} Seviye
                         </span>
                         <span className="px-4 py-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 text-sm font-bold">
-                            {program.emoji} {posKey === 'Safety' ? 'Safety' : posKey} — {user?.position}
+                            {posData.emoji} {posKey === 'Safety' ? 'Safety' : posKey} — {user?.position}
                         </span>
                     </div>
 
                     <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-4 leading-none">
                         AMERİKAN<br />
-                        <span className={`text-transparent bg-clip-text bg-gradient-to-r ${program.color}`}>
+                        <span className={`text-transparent bg-clip-text bg-gradient-to-r ${posData.color}`}>
                             FUTBOLU
                         </span>
                     </h1>
-                    <p className="text-gray-400 text-lg max-w-2xl mt-4 leading-relaxed">{program.tagline}</p>
+                    <p className="text-gray-400 text-lg max-w-2xl mt-4 leading-relaxed">{levelProgram.tagline}</p>
 
                     {/* Anahtar özellikler */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-8">
-                        {program.keyAttributes.map((attr, i) => (
+                        {posData.keyAttributes.map((attr, i) => (
                             <div key={i} className="bg-white/5 border border-white/8 rounded-2xl p-4">
                                 <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">{attr.label}</p>
                                 <p className="text-sm text-white font-bold mt-1">{attr.value}</p>
@@ -545,7 +541,7 @@ export default function AmericanFootballPage() {
 
                     {/* Program özeti */}
                     <div className="flex flex-wrap gap-5 mt-6 text-sm text-gray-400">
-                        <div className="flex items-center gap-1.5"><Timer className="w-4 h-4 text-amber-500" /> {program.weeklyPlan.length} Gün / Hafta</div>
+                        <div className="flex items-center gap-1.5"><Timer className="w-4 h-4 text-amber-500" /> {weeklyPlan.length} Gün / Hafta</div>
                         <div className="flex items-center gap-1.5"><Flame className="w-4 h-4 text-orange-500" /> {intensity.intensityLabel} Yoğunluk</div>
                         <div className="flex items-center gap-1.5"><TrendingUp className="w-4 h-4 text-emerald-400" /> {intensity.repNote}</div>
                     </div>
@@ -555,16 +551,16 @@ export default function AmericanFootballPage() {
             {/* HAFTALIK PROGRAM */}
             <main className="max-w-4xl mx-auto px-4 space-y-3">
                 <h2 className="text-xl font-black text-white mb-5 flex items-center gap-2">
-                    <Shield className="text-amber-500 w-5 h-5" /> HAFTALIK PLAN — {posKey === 'Safety' ? 'Safety' : `${posKey} / ${user?.position}`}
+                    <Shield className="text-amber-500 w-5 h-5" /> HAFTALIK PLAN — {posKey} / {user?.position} / {lvlMod.label}
                 </h2>
 
-                {program.weeklyPlan.map((workout, idx) => {
+                {weeklyPlan.map((workout, idx) => {
                     const isOpen = expandedDay === idx;
                     return (
                         <div key={idx} className={`rounded-2xl border overflow-hidden transition-all duration-300 ${isOpen ? 'border-amber-500/40 bg-white/5' : 'border-white/8 bg-white/[0.02] hover:border-white/15'}`}>
                             <button onClick={() => setExpandedDay(isOpen ? null : idx)} className="w-full p-5 flex items-center gap-4 text-left">
                                 <div className={`flex-shrink-0 w-14 h-14 rounded-2xl flex flex-col items-center justify-center border transition-colors ${isOpen ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' : 'bg-white/5 border-white/10 text-gray-400'}`}>
-                                    {workout.icon}
+                                    <span className="text-lg">🏋️</span>
                                     <span className="text-[9px] font-black mt-0.5 tracking-widest">{workout.day}</span>
                                 </div>
                                 <div className="flex-1 min-w-0">
