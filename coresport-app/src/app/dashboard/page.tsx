@@ -281,6 +281,34 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Beslenme Özet Kartı */}
+      <div
+        onClick={() => router.push('/nutrition')}
+        className="cursor-pointer group relative rounded-3xl overflow-hidden border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-teal-500/5 p-5 hover:border-emerald-500/40 transition-all"
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-xs font-bold text-emerald-400/70 uppercase tracking-widest mb-0.5">Bugün</p>
+            <h2 className="text-base font-black text-white flex items-center gap-2">🥗 Beslenme Günlüğü</h2>
+          </div>
+          <ChevronRight size={18} className="text-emerald-500/60 group-hover:text-emerald-400 transition-colors" />
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-3xl font-black text-white leading-none">{stats ? '0' : '0'} <span className="text-gray-600 text-base font-bold">kcal</span></p>
+            <p className="text-xs text-gray-500 mt-1">Yemek eklemek için dokun →</p>
+          </div>
+          <div className="flex gap-2 text-center flex-shrink-0">
+            {[{ l: 'P', c: 'text-amber-400' }, { l: 'K', c: 'text-emerald-400' }, { l: 'Y', c: 'text-blue-400' }].map((m, i) => (
+              <div key={i} className="px-3 py-2 bg-black/30 rounded-xl border border-white/5">
+                <p className={`text-sm font-black ${m.c}`}>—</p>
+                <p className="text-[9px] text-gray-600 font-bold">{m.l}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Hızlı erişim */}
       <div>
         <h2 className="text-base font-black text-white mb-3">⚡️ Hızlı Erişim</h2>
@@ -291,16 +319,6 @@ export default function DashboardPage() {
           <div className="flex-1 text-left">
             <p className="font-bold text-white text-sm">{cfg.emoji} {cfg.label} Programı</p>
             <p className="text-xs text-gray-500 mt-0.5">{user?.position ? user.position + ' · ' : ''}{user?.level} seviye</p>
-          </div>
-          <ChevronRight size={16} className="text-gray-600 flex-shrink-0" />
-        </button>
-        <button onClick={() => router.push('/nutrition')} className="w-full flex items-center gap-4 bg-white/5 hover:bg-white/10 border border-white/8 rounded-2xl px-5 py-4 transition-all">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
-            <span className="text-base">🥗</span>
-          </div>
-          <div className="flex-1 text-left">
-            <p className="font-bold text-white text-sm">🥗 Beslenme Planı</p>
-            <p className="text-xs text-gray-500 mt-0.5">Kalori · Makro · Öğün zamanlaması</p>
           </div>
           <ChevronRight size={16} className="text-gray-600 flex-shrink-0" />
         </button>
