@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { WorkoutLogModule } from './workout-log/workout-log.module';
+import { FoodLogModule } from './food-log/food-log.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { WorkoutLogModule } from './workout-log/workout-log.module';
     UserModule,
     AuthModule,
     WorkoutLogModule,
+    FoodLogModule,
   ],
   controllers: [AppController],
   providers: [AppService],
