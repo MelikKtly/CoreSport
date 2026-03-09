@@ -793,6 +793,7 @@ export default function DashboardPage() {
             { id: 'stats', icon: <BarChart2 size={22} />, label: 'İstatistik' },
             { id: 'play', special: true },
             { id: 'schedule', icon: <Calendar size={22} />, label: 'Program' },
+            { id: 'nutrition', icon: <span className="text-xl leading-none">🥗</span>, label: 'Beslenme' },
             { id: 'profile', icon: <User size={22} />, label: 'Profil' },
           ].map((item) =>
             item.special ? (
@@ -801,7 +802,8 @@ export default function DashboardPage() {
                 <Play size={22} fill="white" className="text-white ml-0.5" />
               </button>
             ) : (
-              <button key={item.id} onClick={() => setActiveTab(item.id!)}
+              <button key={item.id}
+                onClick={() => item.id === 'nutrition' ? router.push('/nutrition') : setActiveTab(item.id!)}
                 className={`flex flex-col items-center gap-1 transition-colors ${activeTab === item.id ? 'text-white' : 'text-gray-600 hover:text-gray-400'}`}>
                 {item.icon}
                 <span className="text-[10px] font-bold">{item.label}</span>
