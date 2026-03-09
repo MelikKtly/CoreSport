@@ -548,6 +548,33 @@ export default function AmericanFootballPage() {
                 </div>
             </header>
 
+            {/* POZISYON REHBERİ */}
+            <section className="max-w-4xl mx-auto px-4 mb-6">
+                <h2 className="text-base font-black text-white mb-3 flex items-center gap-2">
+                    <span className="text-lg">🎬</span> Pozisyon Rehberi
+                </h2>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                        { label: 'Teknik Driller', query: `${posKey} football drill technique training`, emoji: '🏋️' },
+                        { label: 'Pozisyon Temeli', query: `${user?.position} football position fundamentals`, emoji: '📚' },
+                        { label: 'NFL Analizi', query: `${posKey} NFL film study breakdown`, emoji: '🎥' },
+                        { label: 'Kondisyon', query: `american football ${posKey} conditioning workout`, emoji: '⚡️' },
+                    ].map((item, i) => (
+                        <a
+                            key={i}
+                            href={`https://www.youtube.com/results?search_query=${encodeURIComponent(item.query)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group flex flex-col items-center gap-2 p-4 bg-white/5 hover:bg-white/10 border border-white/8 hover:border-amber-500/30 rounded-2xl transition-all text-center"
+                        >
+                            <span className="text-2xl">{item.emoji}</span>
+                            <p className="text-xs font-bold text-gray-300 group-hover:text-amber-400 transition-colors">{item.label}</p>
+                            <p className="text-[10px] text-gray-600">YouTube&apos;da aç →</p>
+                        </a>
+                    ))}
+                </div>
+            </section>
+
             {/* HAFTALIK PROGRAM */}
             <main className="max-w-4xl mx-auto px-4 space-y-3">
                 <h2 className="text-xl font-black text-white mb-5 flex items-center gap-2">
@@ -585,6 +612,14 @@ export default function AmericanFootballPage() {
                                                     </div>
                                                 </div>
                                                 <p className="text-xs text-gray-500 mt-1.5 italic">💡 {ex.tip}</p>
+                                                <a
+                                                    href={`https://www.youtube.com/results?search_query=${encodeURIComponent(ex.name + ' football drill technique')}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1 mt-1.5 text-[11px] font-bold text-red-400/70 hover:text-red-400 transition-colors"
+                                                >
+                                                    <span>▶</span> Teknik videoyu izle
+                                                </a>
                                             </div>
                                         </div>
                                     ))}
