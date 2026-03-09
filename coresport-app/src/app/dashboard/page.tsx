@@ -6,7 +6,8 @@ import {
   Play, Flame, Clock, Home, BarChart2,
   User, Bell, ChevronRight, Loader2, LogOut,
   Scale, Ruler, Calendar, TrendingUp,
-  ChevronDown, Dumbbell, Trophy, Pencil, Check, X
+  ChevronDown, Dumbbell, Trophy, Pencil, Check, X,
+  ArrowUp, ArrowDown, Minus
 } from 'lucide-react';
 
 interface UserData {
@@ -442,6 +443,161 @@ export default function DashboardPage() {
     </div>
   );
 
+  // ── Program Sekmesi ────────────────────────────────────────────
+  const ScheduleTab = () => {
+    const now = new Date();
+    const thisWeekStart = getWeekStart(now);
+    const lastWeekStart = new Date(thisWeekStart.getTime() - 7 * 86400000);
+
+    const thisWeekLogs = allLogs.filter(l => {
+      const d = new Date(l.createdAt);
+      return d >= thisWeekStart && d < new Date(thisWeekStart.getTime() + 7 * 86400000);
+    });
+    const lastWeekLogs = allLogs.filter(l => {
+      const d = new Date(l.createdAt);
+      return d >= lastWeekStart && d < thisWeekStart;
+    });
+
+    // Aylık takvim
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const firstDayOfWeek = monthStart.getDay() === 0 ? 6 : monthStart.getDay() - 1;
+    const totalDays = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const logDays = new Set(allLogs.map(l => new Date(l.createdAt).toDateString()));
+    const logCountByDay: Record<string, number> = {};
+    for (const log of allLogs) {
+      const key = new Date(log.createdAt).toDateString();
+      logCountByDay[key] = (logCountByDay[key] || 0) + 1;
+    }
+    const calendarCells: (number | null)[] = [
+      ...Array(firstDayOfWeek).fill(null),
+      ...Array.from({ length: totalDays }, (_, i) => i + 1),
+    ];
+    while (calendarCells.length % 7 !== 0) calendarCells.push(null);
+
+    const diffPct = (a: number, b: number) => b === 0 ? (a > 0 ? 100 : 0) : Math.round(((a - b) / b) * 100);
+    const comparisons = [
+      { label: 'Seans', thisW: thisWeekLogs.length, lastW: lastWeekLogs.length, icon: <Trophy size={14} className="text-yellow-400" /> },
+      { label: 'Dakika', thisW: thisWeekLogs.reduce((s, l) => s + l.durationMinutes, 0), lastW: lastWeekLogs.reduce((s, l) => s + l.durationMinutes, 0), icon: <Clock size={14} className="text-blue-400" /> },
+      { label: 'Set', thisW: thisWeekLogs.reduce((s, l) => s + l.totalSets, 0), lastW: lastWeekLogs.reduce((s, l) => s + l.totalSets, 0), icon: <Dumbbell size={14} className="text-purple-400" /> },
+      { label: 'Kg', thisW: Math.round(thisWeekLogs.reduce((s, l) => s + (l.totalWeightKg || 0), 0)), lastW: Math.round(lastWeekLogs.reduce((s, l) => s + (l.totalWeightKg || 0), 0)), icon: <TrendingUp size={14} className="text-emerald-400" /> },
+    ];
+
+    const workoutCards = [
+      { day: 'Pazartesi', label: 'Kuvvet', icon: '💪', color: 'from-amber-500 to-orange-600', desc: 'Üst vücut + core', dow: 1 },
+      { day: 'Çarşamba', label: 'Çeviklik', icon: '⚡️', color: 'from-blue-500 to-cyan-600', desc: 'Drill + kondisyon', dow: 3 },
+      { day: 'Cuma', label: 'Atletizm', icon: '🏃', color: 'from-emerald-500 to-teal-600', desc: 'Sprint + esneklik', dow: 5 },
+    ];
+
+    return (
+      <div className="space-y-6 pt-2">
+        {/* 1. Bu Haftanın 3 Antrenman Kartı */}
+        <div>
+          <h2 className="text-base font-black text-white mb-3 flex items-center gap-2">
+            <Calendar size={16} className="text-amber-500" /> Bu Haftanın Planı
+          </h2>
+          <div className="grid grid-cols-3 gap-2">
+            {workoutCards.map((card, i) => {
+              const isToday = now.getDay() === card.dow;
+              return (
+                <div key={i} className={`relative rounded-2xl overflow-hidden border ${isToday ? 'border-amber-500/50' : 'border-white/8'}`}>
+                  <div className={`absolute inset-0 bg-gradient-to-br ${card.color} opacity-15`} />
+                  <div className="relative p-3">
+                    <p className="text-xl mb-1">{card.icon}</p>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{card.day}</p>
+                    <p className="text-sm font-black text-white mt-0.5">{card.label}</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">{card.desc}</p>
+                    {isToday && <span className="absolute top-2 right-2 text-[9px] font-black text-amber-400 bg-amber-500/20 px-1.5 py-0.5 rounded-full">BUGÜN</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-3 space-y-2">
+            {thisWeekLogs.length === 0 ? (
+              <div className="py-4 px-5 bg-white/3 border border-white/5 rounded-2xl text-center">
+                <p className="text-gray-600 text-sm">Bu hafta henüz antrenman yok</p>
+              </div>
+            ) : thisWeekLogs.map(log => (
+              <div key={log.id} className="flex items-center justify-between px-4 py-3 bg-white/5 border border-white/8 rounded-2xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-bold text-white">{log.workoutTitle}</p>
+                    <p className="text-xs text-gray-500">{formatDate(log.createdAt)}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2 text-[11px] font-bold flex-shrink-0">
+                  <span className="px-2 py-0.5 bg-amber-500/15 text-amber-400 rounded-lg">{log.durationMinutes} dk</span>
+                  <span className="px-2 py-0.5 bg-white/5 text-gray-400 rounded-lg">{log.totalSets} set</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 2. Aylık Takvim Grid */}
+        <div className="bg-white/5 border border-white/8 rounded-2xl p-4">
+          <h3 className="text-sm font-black text-white mb-4">
+            {now.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
+          </h3>
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['Pt', 'Sa', 'Ça', 'Pe', 'Cu', 'Ct', 'Pz'].map(d => (
+              <div key={d} className="text-center text-[10px] font-bold text-gray-600 uppercase">{d}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {calendarCells.map((day, i) => {
+              if (!day) return <div key={i} />;
+              const cellDate = new Date(now.getFullYear(), now.getMonth(), day);
+              const key = cellDate.toDateString();
+              const hasLog = logDays.has(key);
+              const count = logCountByDay[key] || 0;
+              const isToday = day === now.getDate();
+              return (
+                <div key={i} className={`relative aspect-square flex flex-col items-center justify-center rounded-xl text-xs font-bold
+                  ${isToday ? 'bg-amber-500 text-black' : hasLog ? 'bg-emerald-500/25 text-emerald-400 border border-emerald-500/30' : 'text-gray-700'}`}>
+                  {day}
+                  {hasLog && !isToday && count > 1 && <span className="text-[8px]">{count}x</span>}
+                  {hasLog && !isToday && count === 1 && <div className="w-1 h-1 rounded-full bg-emerald-500 mt-0.5" />}
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-4 mt-3 text-xs text-gray-600">
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Bugün</div>
+            <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500/50" /> Antrenman yapıldı</div>
+          </div>
+        </div>
+
+        {/* 3. Haftadan Haftaya Karşılaştırma */}
+        <div>
+          <h3 className="text-sm font-black text-white mb-3 flex items-center gap-2">
+            <TrendingUp size={15} className="text-amber-500" /> Geçen Haftaya Göre
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            {comparisons.map((c, i) => {
+              const pct = diffPct(c.thisW, c.lastW);
+              const up = pct > 0; const eq = pct === 0;
+              return (
+                <div key={i} className="bg-white/5 border border-white/8 rounded-2xl p-4">
+                  <div className="flex items-center gap-1.5 mb-2">{c.icon}
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{c.label}</p>
+                  </div>
+                  <p className="text-2xl font-black text-white">{c.thisW.toLocaleString('tr-TR')}</p>
+                  <div className={`flex items-center gap-1 mt-1 text-xs font-bold ${eq ? 'text-gray-500' : up ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {eq ? <Minus size={12} /> : up ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
+                    <span>{eq ? 'Aynı' : `${Math.abs(pct)}% ${up ? 'artış' : 'düşüş'}`}</span>
+                    <span className="text-gray-600 font-normal ml-1">geçen: {c.lastW}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#0d0d0d] text-gray-100 font-sans pb-28 overflow-x-hidden">
 
@@ -468,6 +624,7 @@ export default function DashboardPage() {
       <main className="px-5 pt-5 max-w-2xl mx-auto">
         {activeTab === 'home' && <HomeTab />}
         {activeTab === 'stats' && <StatsTab />}
+        {activeTab === 'schedule' && <ScheduleTab />}
         {activeTab === 'profile' && (
           <div className="space-y-4 pt-2 pb-4">
             {/* Başlık + Düzenle butonu */}
@@ -537,8 +694,8 @@ export default function DashboardPage() {
                     {['Başlangıç', 'Orta', 'İleri'].map(l => (
                       <button key={l} onClick={() => setEditForm(f => ({ ...f, level: l }))}
                         className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${editForm.level === l
-                            ? 'bg-amber-500 text-black'
-                            : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                          ? 'bg-amber-500 text-black'
+                          : 'bg-white/5 text-gray-400 hover:bg-white/10'
                           }`}>{l}</button>
                     ))}
                   </div>
