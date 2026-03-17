@@ -124,14 +124,21 @@ export default function AmericanFootballPage() {
 
             {/* ── HERO ────────────────────────────────────────────────── */}
             <header className="relative pt-20 pb-0 overflow-hidden">
-                {/* Arka plan gradient katmanları */}
+                {/* Arka plan: fotoğraf + karartma katmanları */}
                 <div className="absolute inset-0 pointer-events-none">
-                    <div className={`absolute -top-20 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-gradient-to-br ${posData.color} opacity-[0.07] blur-[100px] rounded-full`} />
-                    <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#080808] to-transparent" />
+                    {/* Fotoğraf */}
+                    <div className="absolute inset-0"
+                        style={{ backgroundImage: 'url(/american-football-hero.png)', backgroundSize: 'cover', backgroundPosition: 'center 30%' }} />
+                    {/* Koyu örtü — metin okunabilirliği için */}
+                    <div className="absolute inset-0 bg-[#080808]/75" />
+                    {/* Pozisyon rengi glow */}
+                    <div className={`absolute -top-20 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-gradient-to-br ${posData.color} opacity-[0.12] blur-[120px] rounded-full`} />
+                    {/* Alt fade */}
+                    <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#080808] to-transparent" />
                 </div>
 
                 {/* Dekoratif grid */}
-                <div className="absolute inset-0 opacity-[0.025]"
+                <div className="absolute inset-0 opacity-[0.03]"
                     style={{ backgroundImage: `linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)`, backgroundSize: '40px 40px' }} />
 
                 <div className="relative max-w-4xl mx-auto px-4 pt-8 pb-16">
