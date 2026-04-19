@@ -181,32 +181,17 @@ export default function BasketballPage() {
             {/* ── HERO ────────────────────────────────────────────────── */}
             <header className="relative pt-20 pb-0 overflow-hidden">
                 <div className="absolute inset-0 pointer-events-none">
-                    {/* Zemin rengi */}
-                    <div className="absolute inset-0" style={{ background: '#080808' }} />
+                    {/* Hero fotoğraf */}
+                    <div
+                        className="absolute inset-0"
+                        style={{ backgroundImage: 'url(/basketball-hero.png)', backgroundSize: 'cover', backgroundPosition: 'center 30%' }}
+                    />
+                    {/* Koyu örtü */}
+                    <div className="absolute inset-0 bg-[#080808]/70" />
 
-                    {/* Basketbol Sahası SVG deseni */}
-                    <svg className="absolute inset-0 w-full h-full opacity-[0.035]" xmlns="http://www.w3.org/2000/svg"
-                        style={{ transition: 'opacity 1s ease', opacity: courtFlash ? 0.045 : 0.015 }}>
-                        <defs>
-                            <pattern id="court" width="400" height="400" patternUnits="userSpaceOnUse">
-                                {/* üç sayı çizgisi */}
-                                <path d="M 0 350 Q 200 120 400 350" fill="none" stroke="white" strokeWidth="2"/>
-                                {/* orta çember */}
-                                <circle cx="200" cy="200" r="60" fill="none" stroke="white" strokeWidth="2"/>
-                                {/* serbest atış çemberi */}
-                                <circle cx="200" cy="330" r="50" fill="none" stroke="white" strokeWidth="2"/>
-                                {/* serbest atış yolu */}
-                                <rect x="140" y="280" width="120" height="100" fill="none" stroke="white" strokeWidth="2"/>
-                                {/* merkez daire */}
-                                <circle cx="200" cy="200" r="8" fill="white" opacity="0.5"/>
-                            </pattern>
-                        </defs>
-                        <rect width="100%" height="100%" fill="url(#court)"/>
-                    </svg>
-
-                    {/* Ana glow */}
+                    {/* Renk glow */}
                     <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full blur-[140px]"
-                        style={{ background: `radial-gradient(ellipse, ${posGrad.glow} 0%, transparent 70%)`, opacity: 0.8 }} />
+                        style={{ background: `radial-gradient(ellipse, ${posGrad.glow} 0%, transparent 70%)`, opacity: courtFlash ? 0.6 : 0.3, transition: 'opacity 1s ease' }} />
 
                     {/* Basketbol ikonları dekoratif */}
                     <div className="absolute top-24 right-8 text-[120px] opacity-[0.03] select-none">🏀</div>
