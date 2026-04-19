@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AnimatedBackground from '../components/AnimatedBackground';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001';
+
 export default function RegisterPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -19,8 +21,8 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      // Backend'e istek at (Port 3001/user)
-      const res = await fetch('http://localhost:3001/user', {
+      // Backend'e istek at
+      const res = await fetch(`${API_URL}/user`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name }),
