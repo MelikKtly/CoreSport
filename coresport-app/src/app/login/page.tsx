@@ -6,6 +6,8 @@ import Link from 'next/link';
 // AnimatedBackground bileşeni src/app/components/AnimatedBackground.tsx yolunda olmalı
 import AnimatedBackground from '../components/AnimatedBackground';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001';
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -33,8 +35,8 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // Backend'e istek at (127.0.0.1 bağlantı hatalarını azaltır)
-      const res = await fetch('http://127.0.0.1:3001/auth/login', {
+      // Backend'e istek at
+      const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -66,7 +68,7 @@ export default function LoginPage() {
       }
 
       // 3. Kullanıcı daha önce onboarding yaptı mı? (sportBranch dolu mu?)
-      const profileRes = await fetch(`http://127.0.0.1:3001/user/${userId}`, {
+      const profileRes = await fetch(`${API_URL}/user/${userId}`, {
         headers: { Authorization: `Bearer ${data.access_token}` }
       });
 

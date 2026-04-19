@@ -110,6 +110,8 @@ function getLast8WeeksBars(logs: WorkoutLog[]) {
 
 const weekDays = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001';
+
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
@@ -134,9 +136,9 @@ export default function DashboardPage() {
 
       const headers = { Authorization: `Bearer ${token}` };
       const [userRes, statsRes, logsRes] = await Promise.all([
-        fetch(`http://127.0.0.1:3001/user/${userId}`, { headers }),
-        fetch(`http://127.0.0.1:3001/workout-log/user/${userId}/stats`, { headers }),
-        fetch(`http://127.0.0.1:3001/workout-log/user/${userId}`, { headers }),
+        fetch(`${API_URL}/user/${userId}`, { headers }),
+        fetch(`${API_URL}/workout-log/user/${userId}/stats`, { headers }),
+        fetch(`${API_URL}/workout-log/user/${userId}`, { headers }),
       ]);
 
       if (userRes.ok) {
@@ -163,7 +165,7 @@ export default function DashboardPage() {
     try {
       const userId = localStorage.getItem('userId');
       const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      await fetch(`http://127.0.0.1:3001/user/${userId}`, {
+      await fetch(`${API_URL}/user/${userId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
