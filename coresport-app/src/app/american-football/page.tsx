@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { WorkoutTracker } from '@/components/WorkoutTracker';
 import { AF_PROGRAMS } from '@/data/af-programs';
 
-const API_URL = 'http://127.0.0.1:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001';
 
 interface User { id: string; name: string; weight: number; height: number; sportBranch: string; level: string; position: string; age: number; }
 interface Exercise { name: string; sets: string; reps: string; rest: string; tip: string; }

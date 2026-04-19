@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2, Flame, Droplets, Plus, X, Search, ChevronDown, Trash2, Star } from 'lucide-react';
 
-const API_URL = 'http://127.0.0.1:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001';
 
 interface User {
     id: string; name: string; weight: number; height: number; age: number;

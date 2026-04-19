@@ -6,7 +6,7 @@ import { Check, ArrowRight, ArrowLeft, Scale, Ruler, User, Zap, Heart, Trophy, M
 
 // --- AYARLAR ---
 // Backend adresi
-const API_URL = 'http://127.0.0.1:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001';
 
 // --- TypeScript Veri Tipleri ---
 interface Interest {

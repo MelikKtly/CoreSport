@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { WorkoutTracker } from '@/components/WorkoutTracker';
 import { SB_PROGRAMS } from '@/data/snowboard-programs';
 
-const API_URL = 'http://127.0.0.1:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001';
 
 interface User {
     id: string; name: string; weight: number; height: number;

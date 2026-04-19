@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { WorkoutTracker } from '@/components/WorkoutTracker';
 import { BB_PROGRAMS } from '@/data/basketball-programs';
 
-const API_URL = 'http://127.0.0.1:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001';
 
 interface User {
     id: string; name: string; weight: number; height: number;
