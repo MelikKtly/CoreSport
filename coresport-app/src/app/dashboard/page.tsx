@@ -12,7 +12,7 @@ import {
 
 interface UserData {
   id: string; name: string; email: string;
-  sportBranch: string; position: string; level: string;
+  sportBranch: string; interests: string[]; position: string; level: string;
   weight: number; height: number; age: number;
   motivation: string; gender: string;
 }
@@ -311,19 +311,26 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Hızlı erişim */}
+      {/* Seçilen Spor Dalları / Hızlı Erişim */}
       <div>
-        <h2 className="text-base font-black text-white mb-3">⚡️ Hızlı Erişim</h2>
-        <button onClick={() => router.push(cfg.link)} className="w-full flex items-center gap-4 bg-white/5 hover:bg-white/10 border border-white/8 rounded-2xl px-5 py-4 transition-all">
-          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${cfg.gradient} flex items-center justify-center flex-shrink-0`}>
-            <Play size={16} fill="white" className="text-white" />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="font-bold text-white text-sm">{cfg.emoji} {cfg.label} Programı</p>
-            <p className="text-xs text-gray-500 mt-0.5">{user?.position ? user.position + ' · ' : ''}{user?.level} seviye</p>
-          </div>
-          <ChevronRight size={16} className="text-gray-600 flex-shrink-0" />
-        </button>
+        <h2 className="text-base font-black text-white mb-3">⚡️ Spor Dallarınız</h2>
+        <div className="space-y-3">
+          {(user?.interests?.length > 0 ? user.interests : [user?.sportBranch || 'Fitness']).map((b, idx) => {
+            const bCfg = branchConfig[b] || branchConfig['Fitness'];
+            return (
+              <button key={idx} onClick={() => router.push(bCfg.link)} className="w-full flex items-center gap-4 bg-white/5 hover:bg-white/10 border border-white/8 rounded-2xl px-5 py-4 transition-all group">
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${bCfg.gradient} flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}>
+                  <Play size={16} fill="white" className="text-white" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="font-bold text-white text-sm">{bCfg.emoji} {bCfg.label}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 group-hover:text-gray-300 transition-colors">Programını görüntüle</p>
+                </div>
+                <ChevronRight size={16} className="text-gray-600 group-hover:text-white transition-colors flex-shrink-0" />
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
