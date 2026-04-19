@@ -697,7 +697,7 @@ export default function DashboardPage() {
             {[
               { label: 'Ad', value: user?.name },
               { label: 'E-posta', value: user?.email },
-              { label: 'Branş', value: user?.sportBranch },
+              { label: 'Branş(lar)', value: (user?.interests?.length ? user.interests.join(', ') : user?.sportBranch) },
             ].map((row, i) => row.value ? (
               <div key={i} className="flex items-center justify-between px-5 py-3.5 bg-white/3 border border-white/5 rounded-2xl opacity-70">
                 <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">{row.label}</span>

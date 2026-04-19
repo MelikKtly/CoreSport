@@ -38,9 +38,9 @@ export default function OnboardingPage() {
 
   // State: Seçilen veriler
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-  const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
+  const [selectedPositions, setSelectedPositions] = useState<Record<string, string>>({});
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
-  const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
+  const [selectedLevels, setSelectedLevels] = useState<Record<string, string>>({});
   const [stats, setStats] = useState<Stats>({
     gender: 'female',
     age: 25,
@@ -214,8 +214,8 @@ export default function OnboardingPage() {
         interests: mappedInterests,
         motivation,
         gender: genderName,
-        position: positionNames[selectedPosition || ''] || selectedPosition || 'Genel',
-        level: levelNameMap[selectedLevel || ''] || 'Başlangıç',
+        position: selectedInterests.map(id => `${mapIdToName[id] || id}: ${positionNames[selectedPositions[id] || ''] || selectedPositions[id] || 'Genel'}`).join(' | '),
+        level: selectedInterests.map(id => `${mapIdToName[id] || id}: ${levelNameMap[selectedLevels[id] || ''] || 'Başlangıç'}`).join(' | '),
         age: stats.age,
         weight: stats.weight,
         height: stats.height
@@ -331,36 +331,41 @@ export default function OnboardingPage() {
     ],
   };
 
-  const currentPositions = positionsByBranch[selectedInterests[0]] || positionsByBranch['gym'];
-
   const renderStep2 = () => (
     <>
       <div className="mt-4 mb-6 animate-in slide-in-from-right duration-500">
         <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tighter">
           Mevkini <span className="text-blue-600">Seç</span>
         </h1>
-        <p className="text-gray-500 font-medium text-lg">Sahada hangi rolde oynuyorsun?</p>
+        <p className="text-gray-500 font-medium text-lg">Seçtiğin branşlardaki rollerini belirle.</p>
       </div>
-      <div className="space-y-3 flex-1 overflow-y-auto pb-4 custom-scrollbar animate-in slide-in-from-bottom duration-700 delay-100">
-        {currentPositions.map((pos) => {
-          const isSelected = selectedPosition === pos.id;
+      <div className="space-y-8 flex-1 overflow-y-auto pb-4 custom-scrollbar animate-in slide-in-from-bottom duration-700 delay-100">
+        {selectedInterests.map((interestId) => {
+          const positions = positionsByBranch[interestId] || positionsByBranch['gym'];
+          const interestObj = interests.find(i => i.id === interestId);
           return (
-            <button
-              key={pos.id}
-              onClick={() => setSelectedPosition(pos.id)}
-              className={`w-full p-4 rounded-2xl border-2 flex items-center transition-all duration-300 text-left group ${isSelected ? 'border-blue-600 bg-blue-50 shadow-lg ring-1 ring-blue-600' : 'border-gray-100 bg-white hover:border-blue-200 hover:shadow-md'
-                }`}
-            >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 text-xl flex-shrink-0 transition-colors duration-300 ${isSelected ? 'bg-blue-600 shadow-md' : 'bg-gray-100 group-hover:bg-blue-50'
-                }`}>
-                {pos.icon}
+            <div key={interestId}>
+              <h2 className="text-xl font-bold text-gray-800 mb-3 ml-1 border-l-4 border-blue-600 pl-3">{interestObj?.name || 'Branş'}</h2>
+              <div className="space-y-3">
+                {positions.map((pos) => {
+                  const isSelected = selectedPositions[interestId] === pos.id;
+                  return (
+                    <button
+                      key={pos.id}
+                      onClick={() => setSelectedPositions(prev => ({ ...prev, [interestId]: pos.id }))}
+                      className={`w-full p-4 rounded-xl border-2 flex items-center transition-all duration-300 text-left group ${isSelected ? 'border-blue-600 bg-blue-50 shadow-md ring-1 ring-blue-600' : 'border-gray-100 bg-white hover:border-blue-200'}`}
+                    >
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-4 text-xl flex-shrink-0 transition-colors duration-300 ${isSelected ? 'bg-blue-600 shadow-sm' : 'bg-gray-100 group-hover:bg-blue-50'}`}>{pos.icon}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className={`font-bold text-base ${isSelected ? 'text-blue-700' : 'text-gray-800'}`}>{pos.name}</div>
+                        <div className="text-xs text-gray-500 font-medium mt-0.5 truncate">{pos.desc}</div>
+                      </div>
+                      {isSelected && <Check size={18} className="text-blue-600 ml-2 animate-in zoom-in flex-shrink-0" strokeWidth={3} />}
+                    </button>
+                  );
+                })}
               </div>
-              <div className="flex-1 min-w-0">
-                <div className={`font-bold text-lg ${isSelected ? 'text-blue-700' : 'text-gray-800'}`}>{pos.name}</div>
-                <div className="text-xs text-gray-500 font-medium mt-0.5 truncate">{pos.desc}</div>
-              </div>
-              {isSelected && <Check size={20} className="text-blue-600 ml-2 animate-in zoom-in flex-shrink-0" strokeWidth={3} />}
-            </button>
+            </div>
           );
         })}
       </div>
@@ -407,30 +412,34 @@ export default function OnboardingPage() {
         <h1 className="text-4xl font-black text-gray-900 mb-2 tracking-tighter">
           Seviyeni <span className="text-blue-600">Belirle</span>
         </h1>
-        <p className="text-gray-500 font-medium text-lg">
-          {currentPositions.find(p => p.id === selectedPosition)?.name || 'Seçtiğin brans'}ta ne kadar deneyimlisin?
-        </p>
+        <p className="text-gray-500 font-medium text-lg">Seçtiğin branşlarda ne kadar deneyimlisin?</p>
       </div>
-      <div className="space-y-4 flex-1 animate-in slide-in-from-bottom duration-700 delay-100">
-        {levels.map((lvl) => {
-          const isSelected = selectedLevel === lvl.id;
+      <div className="space-y-8 flex-1 overflow-y-auto pb-4 custom-scrollbar animate-in slide-in-from-bottom duration-700 delay-100">
+        {selectedInterests.map((interestId) => {
+          const interestObj = interests.find(i => i.id === interestId);
           return (
-            <button
-              key={lvl.id}
-              onClick={() => setSelectedLevel(lvl.id)}
-              className={`w-full p-5 rounded-3xl border-2 flex items-center text-left transition-all duration-300 group ${isSelected ? 'border-blue-600 bg-blue-50 shadow-lg ring-1 ring-blue-600' : 'border-gray-100 bg-white hover:border-blue-200 hover:shadow-md'
-                }`}
-            >
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mr-4 text-2xl flex-shrink-0 transition-all duration-300 ${isSelected ? 'bg-blue-600 shadow-md' : 'bg-gray-100 group-hover:bg-blue-50'
-                }`}>
-                {lvl.emoji}
+            <div key={interestId}>
+              <h2 className="text-xl font-bold text-gray-800 mb-3 ml-1 border-l-4 border-blue-600 pl-3">{interestObj?.name || 'Branş'}</h2>
+              <div className="space-y-3">
+                {levels.map((lvl) => {
+                  const isSelected = selectedLevels[interestId] === lvl.id;
+                  return (
+                    <button
+                      key={lvl.id}
+                      onClick={() => setSelectedLevels(prev => ({ ...prev, [interestId]: lvl.id }))}
+                      className={`w-full p-4 rounded-xl border-2 flex items-center text-left transition-all duration-300 group ${isSelected ? 'border-blue-600 bg-blue-50 shadow-md ring-1 ring-blue-600' : 'border-gray-100 bg-white hover:border-blue-200'}`}
+                    >
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center mr-4 text-2xl flex-shrink-0 transition-all duration-300 ${isSelected ? 'bg-blue-600 shadow-sm' : 'bg-gray-100 group-hover:bg-blue-50'}`}>{lvl.emoji}</div>
+                      <div className="flex-1">
+                        <div className={`font-bold text-lg ${isSelected ? 'text-blue-700' : 'text-gray-800'}`}>{lvl.name}</div>
+                        <div className="text-xs text-gray-500 mt-0.5 font-medium">{lvl.desc}</div>
+                      </div>
+                      {isSelected && <Check size={20} className="text-blue-600 ml-3 animate-in zoom-in" strokeWidth={3} />}
+                    </button>
+                  );
+                })}
               </div>
-              <div className="flex-1">
-                <div className={`font-bold text-xl ${isSelected ? 'text-blue-700' : 'text-gray-800'}`}>{lvl.name}</div>
-                <div className="text-sm text-gray-500 mt-0.5 font-medium">{lvl.desc}</div>
-              </div>
-              {isSelected && <Check size={22} className="text-blue-600 ml-3 animate-in zoom-in" strokeWidth={3} />}
-            </button>
+            </div>
           );
         })}
       </div>
@@ -543,8 +552,8 @@ export default function OnboardingPage() {
         <div className="max-w-md mx-auto">
           <button
             onClick={handleNext}
-            disabled={(step === 1 && selectedInterests.length === 0) || (step === 2 && !selectedPosition) || (step === 3 && !selectedGoal) || (step === 4 && !selectedLevel) || isSaving}
-            className={`w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center transition-all duration-300 shadow-xl ${((step === 1 && selectedInterests.length > 0) || (step === 2 && selectedPosition) || (step === 3 && selectedGoal) || (step === 4 && selectedLevel) || step === 5) && !isSaving ? 'bg-black text-white hover:bg-gray-900 hover:-translate-y-0.5 active:scale-95' : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'}`}
+            disabled={(step === 1 && selectedInterests.length === 0) || (step === 2 && Object.keys(selectedPositions).length !== selectedInterests.length) || (step === 3 && !selectedGoal) || (step === 4 && Object.keys(selectedLevels).length !== selectedInterests.length) || isSaving}
+            className={`w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center transition-all duration-300 shadow-xl ${((step === 1 && selectedInterests.length > 0) || (step === 2 && Object.keys(selectedPositions).length === selectedInterests.length) || (step === 3 && selectedGoal) || (step === 4 && Object.keys(selectedLevels).length === selectedInterests.length) || step === 5) && !isSaving ? 'bg-black text-white hover:bg-gray-900 hover:-translate-y-0.5 active:scale-95' : 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'}`}
           >
             {isSaving ? <Loader2 className="animate-spin" size={24} /> : <>{step === totalSteps ? 'Planı Oluştur' : 'Devam Et'} <ArrowRight className="ml-2" size={20} /></>}
           </button>
