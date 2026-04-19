@@ -110,19 +110,3 @@ npm run dev
 Frontend `http://localhost:3000` adresinde çalışmaya başlayacaktır. Tarayıcınızda bu adresi açarak uygulamayı kullanmaya başlayabilirsiniz.
 
 ---
-
-## 🚀 Canlıya Alma Önerisi (Deployment Strategy)
-
-CoreSport mimarisi aşağıdaki ücretsiz teknoloji yığını ile tam verimli olarak deploy edilebilir:
-
-1.  **Veritabanı:** Supabase (Ücretsiz PostgreSQL veritabanı barındırması).
-2.  **API (Backend):** Render.com platformuna GitHub entegrasyonu ile (Supabase PostgreSQL erişim anahtarları ile konfigürasyon edilerek).
-3.  **Frontend:** Vercel.com sistemine bağlanarak. (Localhost yerine üretim için `NEXT_PUBLIC_API_URL` ortam değişkenleri ile kurulmalıdır.)
-
----
-
-## 🛡️ Mevcut Kısıtlamalar ve İleriye Yönelik İyileştirmeler (TODO)
-Bu proje sürekli geliştirilmek üzere tasarlanmıştır. Canlıya girmeden önce yapılması gerekenler:
-- [ ] Backend API endpointlerine `@UseGuards(JwtAuthGuard)` eklenerek güvenliğin yetkilendirme katmanına (Authorization) çekilmesi.
-- [ ] Frontend'deki hardcoded (sabit) `127.0.0.1:3001` HTTP isteklerinin Next.js `process.env.NEXT_PUBLIC_API_URL` çevre değişkenine (Environment Variable) aktarılması.
-- [ ] Uygulama token'larının `localStorage` yerine XSS korumalı HTTP Only Cookie'lerde tutulması.
