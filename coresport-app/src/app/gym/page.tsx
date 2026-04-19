@@ -181,28 +181,17 @@ export default function GymPage() {
                 <div className="absolute inset-0 pointer-events-none">
                     <div className="absolute inset-0" style={{ background: '#080808' }} />
 
-                    {/* Ağırlık plakası SVG deseni */}
-                    <svg className="absolute inset-0 w-full h-full"
-                        style={{ opacity: mounted ? 0.035 : 0.01, transition: 'opacity 1.2s ease' }}
-                        xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <pattern id="gym-pattern" width="120" height="120" patternUnits="userSpaceOnUse">
-                                {/* barbell */}
-                                <rect x="10" y="57" width="100" height="6" rx="3" fill="white" opacity="0.6"/>
-                                {/* left plate */}
-                                <rect x="8" y="45" width="12" height="30" rx="4" fill="white" opacity="0.5"/>
-                                <rect x="2"  y="50" width="8"  height="20" rx="3" fill="white" opacity="0.4"/>
-                                {/* right plate */}
-                                <rect x="100" y="45" width="12" height="30" rx="4" fill="white" opacity="0.5"/>
-                                <rect x="110" y="50" width="8"  height="20" rx="3" fill="white" opacity="0.4"/>
-                            </pattern>
-                        </defs>
-                        <rect width="100%" height="100%" fill="url(#gym-pattern)"/>
-                    </svg>
+                    {/* Hero fotoğraf */}
+                    <div
+                        className="absolute inset-0"
+                        style={{ backgroundImage: 'url(/gym-hero.png)', backgroundSize: 'cover', backgroundPosition: 'center 35%' }}
+                    />
+                    {/* Koyu örtü */}
+                    <div className="absolute inset-0 bg-[#080808]/72" />
 
-                    {/* Glow */}
+                    {/* Renk glow */}
                     <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[900px] h-[600px] rounded-full blur-[150px]"
-                        style={{ background: `radial-gradient(ellipse, ${theme.glow} 0%, transparent 70%)`, opacity: mounted ? 1 : 0, transition: 'opacity 1s ease' }} />
+                        style={{ background: `radial-gradient(ellipse, ${theme.glow} 0%, transparent 70%)`, opacity: mounted ? 0.7 : 0.2, transition: 'opacity 1s ease' }} />
 
                     {/* Dekoratif ikonlar */}
                     <div className="absolute top-28 right-6 text-[100px] opacity-[0.025] select-none">🏋️</div>
