@@ -315,7 +315,7 @@ export default function DashboardPage() {
       <div>
         <h2 className="text-base font-black text-white mb-3">⚡️ Spor Dallarınız</h2>
         <div className="space-y-3">
-          {(user?.interests?.length > 0 ? user.interests : [user?.sportBranch || 'Fitness']).map((b, idx) => {
+          {(user && user.interests && user.interests.length > 0 ? user.interests : [user?.sportBranch || 'Fitness']).map((b, idx) => {
             const bCfg = branchConfig[b] || branchConfig['Fitness'];
             return (
               <button key={idx} onClick={() => router.push(bCfg.link)} className="w-full flex items-center gap-4 bg-white/5 hover:bg-white/10 border border-white/8 rounded-2xl px-5 py-4 transition-all group">
