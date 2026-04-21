@@ -10,6 +10,8 @@ Modern web teknolojileri (Next.js, NestJS, TailwindCSS, PostgreSQL) kullanılara
 ![NestJS](https://img.shields.io/badge/NestJS-E0234E?logo=nestjs&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?logo=postgresql&logoColor=white)
 
+https://core-sport.vercel.app
+
 ---
 
 ## 🔥 Proje Özellikleri
